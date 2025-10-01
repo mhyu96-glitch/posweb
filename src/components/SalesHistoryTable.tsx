@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,8 +9,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Printer } from "lucide-react";
 
 export interface Sale {
@@ -26,7 +40,19 @@ interface SalesHistoryTableProps {
   onPrintReceipt: (sale: Sale) => void;
 }
 
-export const SalesHistoryTable = ({ sales, onPrintReceipt }: SalesHistoryTableProps) => {
+const ITEMS_PER_PAGE = 20;
+
+export const SalesHistoryTable = ({
+  sales,
+  onPrintReceipt,
+}: SalesHistoryTableProps) => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const pageCount = Math.ceil(sales.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentSales = sales.slice(startIndex, endIndex);
+
   const handlePrint = () => {
     window.print();
   };
@@ -60,8 +86,8 @@ export const SalesHistoryTable = ({ sales, onPrintReceipt }: SalesHistoryTablePr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sales.length > 0 ? (
-                sales.map((sale) => {
+              {currentSales.length > 0 ? (
+                currentSales.map((sale) => {
                   const adminFee = sale.admin_fee || 0;
                   const total = sale.amount + adminFee;
                   return (
@@ -106,6 +132,45 @@ export const SalesHistoryTable = ({ sales, onPrintReceipt }: SalesHistoryTablePr
           </Table>
         </div>
       </CardContent>
+      {pageCount > 1 && (
+        <CardFooter className="flex items-center justify-between print:hidden">
+          <div className="text-sm text-muted-foreground">
+            Halaman {currentPage} dari {pageCount}
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCurrentPage((prev) => Math.max(prev - 1, 1));
+                  }}
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : undefined
+                  }
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCurrentPage((prev) => Math.min(prev + 1, pageCount));
+                  }}
+                  className={
+                    currentPage === pageCount
+                      ? "pointer-events-none opacity-50"
+                      : undefined
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </CardFooter>
+      )}
     </Card>
   );
 };
