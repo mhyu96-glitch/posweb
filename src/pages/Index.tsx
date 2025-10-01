@@ -130,7 +130,7 @@ const Index = () => {
 
   if (receiptToPrint) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-200">
+      <div id="receipt-print-area">
         <Receipt sale={receiptToPrint} />
       </div>
     );

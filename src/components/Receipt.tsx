@@ -11,7 +11,7 @@ export const Receipt = ({ sale }: ReceiptProps) => {
   const total = sale.amount + adminFee;
 
   return (
-    <div className="w-full max-w-[300px] mx-auto bg-white p-4 font-mono text-sm text-black rounded-lg shadow-lg">
+    <div className="receipt-component w-full max-w-[300px] mx-auto bg-white p-4 font-mono text-sm text-black rounded-lg shadow-lg">
       <div className="text-center">
         <h2 className="text-lg font-bold">STRUK PEMBAYARAN</h2>
         <p className="text-xs">Catatan Penjualan Harian</p>
