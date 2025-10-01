@@ -23,9 +23,10 @@ export interface Sale {
 
 interface SalesHistoryTableProps {
   sales: Sale[];
+  onPrintReceipt: (sale: Sale) => void;
 }
 
-export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
+export const SalesHistoryTable = ({ sales, onPrintReceipt }: SalesHistoryTableProps) => {
   const handlePrint = () => {
     window.print();
   };
@@ -41,7 +42,7 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
           className="print:hidden"
         >
           <Printer className="mr-2 h-4 w-4" />
-          Cetak
+          Cetak Laporan
         </Button>
       </CardHeader>
       <CardContent>
@@ -55,6 +56,7 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
                 <TableHead className="text-right">Nominal (Rp)</TableHead>
                 <TableHead className="text-right">Admin (Rp)</TableHead>
                 <TableHead className="text-right">Total (Rp)</TableHead>
+                <TableHead className="text-right print:hidden">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -80,12 +82,22 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
                       <TableCell className="text-right font-medium">
                         {total.toLocaleString("id-ID")}
                       </TableCell>
+                      <TableCell className="text-right print:hidden">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => onPrintReceipt(sale)}
+                          title="Cetak Struk"
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center h-24">
+                  <TableCell colSpan={7} className="text-center h-24">
                     Belum ada data penjualan.
                   </TableCell>
                 </TableRow>

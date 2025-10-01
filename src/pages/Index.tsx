@@ -11,11 +11,13 @@ import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Receipt } from "@/components/Receipt";
 
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [initialBalance, setInitialBalance] = useState(0);
+  const [receiptToPrint, setReceiptToPrint] = useState<Sale | null>(null);
 
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
@@ -40,7 +42,6 @@ const Index = () => {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      // Mengonversi created_at menjadi objek Date
       return data.map(sale => ({ ...sale, createdAt: new Date(sale.created_at) }));
     },
     enabled: !!session?.user?.id,
@@ -76,6 +77,27 @@ const Index = () => {
     navigate("/login");
   };
 
+  const handlePrintReceipt = (sale: Sale) => {
+    setReceiptToPrint(sale);
+  };
+
+  useEffect(() => {
+    if (receiptToPrint) {
+      const timer = setTimeout(() => window.print(), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [receiptToPrint]);
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setReceiptToPrint(null);
+    };
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => {
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+  }, []);
+
   const totalSalesAmount = sales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
   const totalAdminFee = sales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
   
@@ -84,7 +106,6 @@ const Index = () => {
         sales
           .reduce((map, sale) => {
             if (sale.customer_name) {
-              // Karena data sudah diurutkan dari yang terbaru, kita hanya ambil entri pertama untuk setiap nama
               if (!map.has(sale.customer_name)) {
                 map.set(sale.customer_name, { name: sale.customer_name, phone: sale.phone });
               }
@@ -103,6 +124,14 @@ const Index = () => {
           <Skeleton className="h-64 lg:col-span-1" />
           <Skeleton className="h-64 lg:col-span-2" />
         </div>
+      </div>
+    );
+  }
+
+  if (receiptToPrint) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-200">
+        <Receipt sale={receiptToPrint} />
       </div>
     );
   }
@@ -140,7 +169,7 @@ const Index = () => {
           {isSalesLoading ? (
             <Skeleton className="h-96 w-full" />
           ) : (
-            <SalesHistoryTable sales={sales || []} />
+            <SalesHistoryTable sales={sales || []} onPrintReceipt={handlePrintReceipt} />
           )}
         </div>
       </main>
