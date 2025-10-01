@@ -5,21 +5,19 @@ import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 
 const Login = () => {
   const navigate = useNavigate();
 
-  const { data: { session } = { session: null }, isLoading } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      return data;
-    },
-  });
-
   useEffect(() => {
+    // Check for an active session on initial load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/');
+      }
+    });
+
+    // Listen for auth state changes (e.g., after logging in)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         navigate("/");
@@ -28,10 +26,6 @@ const Login = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  if (isLoading) {
-    return <div>Memuat...</div>;
-  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
