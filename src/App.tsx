@@ -9,6 +9,8 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Products from "./pages/Products";
 import MainLayout from "./components/MainLayout";
+import { ShiftProvider } from "./components/ShiftProvider";
+import ShiftReport from "./pages/ShiftReport";
 
 const queryClient = new QueryClient();
 
@@ -17,17 +19,20 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/products" element={<Products />} />
-          </Route>
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <ShiftProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/products" element={<Products />} />
+            </Route>
+            <Route path="/login" element={<Login />} />
+            <Route path="/shift-report/:shiftId" element={<ShiftReport />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ShiftProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

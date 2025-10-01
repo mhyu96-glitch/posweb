@@ -13,16 +13,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Clock } from "lucide-react";
+import { useShift } from "./ShiftProvider";
+import { showSuccess, showError } from "@/utils/toast";
 
 export const Header = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { activeShift, endShift } = useShift();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     queryClient.clear();
     navigate("/login");
+  };
+
+  const handleEndShift = async () => {
+    try {
+      const endedShiftId = await endShift();
+      if (endedShiftId) {
+        showSuccess("Shift berhasil diakhiri.");
+        navigate(`/shift-report/${endedShiftId}`);
+      }
+    } catch (error) {
+      showError("Gagal mengakhiri shift.");
+    }
   };
 
   return (
@@ -48,7 +63,18 @@ export const Header = () => {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          {activeShift && (
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Clock className="h-4 w-4" />
+              <span>Shift Aktif</span>
+            </div>
+          )}
           <nav className="flex items-center">
+            {activeShift && (
+              <Button variant="destructive" size="sm" onClick={handleEndShift} className="mr-2">
+                Akhiri Shift
+              </Button>
+            )}
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

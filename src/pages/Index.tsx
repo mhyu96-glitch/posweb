@@ -17,10 +17,12 @@ import { SalesChart } from "@/components/SalesChart";
 import { Input } from "@/components/ui/input";
 import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
+import { useShift } from "@/components/ShiftProvider";
 
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { activeShift, isLoading: isShiftLoading } = useShift();
   const [receiptToPrint, setReceiptToPrint] = useState<Sale | null>(null);
   const [filter, setFilter] = useState<{
     mode: "all" | "daily" | "monthly" | "yearly";
@@ -35,8 +37,10 @@ const Index = () => {
   });
 
   useEffect(() => {
-    localStorage.setItem("initialBalance", initialBalance.toString());
-  }, [initialBalance]);
+    if (activeShift) {
+      setInitialBalance(activeShift.starting_balance);
+    }
+  }, [activeShift]);
 
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
@@ -53,17 +57,21 @@ const Index = () => {
   });
 
   const { data: sales, isLoading: isSalesLoading } = useQuery<Sale[]>({
-    queryKey: ["sales", session?.user?.id],
+    queryKey: ["sales", session?.user?.id, activeShift?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
-      const { data, error } = await supabase
-        .from("sales")
-        .select("*")
-        .order("created_at", { ascending: false });
+      let query = supabase.from("sales").select("*");
+      
+      // If cashier is on shift, only show sales for that shift
+      if (activeShift) {
+        query = query.eq("shift_id", activeShift.id);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return data.map(sale => ({ ...sale, createdAt: new Date(sale.created_at) }));
     },
-    enabled: !!session?.user?.id,
+    enabled: !!session?.user?.id && !isShiftLoading,
   });
 
   const uniqueCategories = useMemo(() => {
@@ -125,10 +133,11 @@ const Index = () => {
           amount: newSale.amount, 
           admin_fee: newSale.adminFee,
           category: newSale.category,
-          user_id: session.user.id 
+          user_id: session.user.id,
+          shift_id: activeShift?.id,
         }]);
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id] });
+      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
     } catch (error) {
       showError("Gagal menyimpan penjualan.");
       console.error("Error adding sale:", error);
@@ -140,7 +149,7 @@ const Index = () => {
       const { error } = await supabase.from("sales").delete().match({ id: saleId });
       if (error) throw error;
       showSuccess("Transaksi berhasil dihapus!");
-      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id] });
+      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
     } catch (error) {
       showError("Gagal menghapus transaksi.");
     }
@@ -192,7 +201,7 @@ const Index = () => {
       }, new Map<string, { name: string }>()).values())
     : [], [sales]);
 
-  if (isSessionLoading || isSalesLoading) {
+  if (isSessionLoading || isSalesLoading || isShiftLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6 space-y-4">
         <Skeleton className="h-8 w-1/4" />
