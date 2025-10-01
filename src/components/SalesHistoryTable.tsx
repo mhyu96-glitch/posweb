@@ -15,6 +15,7 @@ export interface Sale {
   customer_name?: string;
   phone: string;
   amount: number;
+  admin_fee?: number;
   createdAt: Date;
 }
 
@@ -37,25 +38,37 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
                 <TableHead>Nama Pelanggan</TableHead>
                 <TableHead>Nomor HP</TableHead>
                 <TableHead className="text-right">Nominal (Rp)</TableHead>
+                <TableHead className="text-right">Admin (Rp)</TableHead>
+                <TableHead className="text-right">Total (Rp)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sales.length > 0 ? (
-                sales.map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell>
-                      {sale.createdAt.toLocaleString("id-ID", { hour12: false })}
-                    </TableCell>
-                    <TableCell>{sale.customer_name || "-"}</TableCell>
-                    <TableCell>{sale.phone}</TableCell>
-                    <TableCell className="text-right">
-                      {sale.amount.toLocaleString("id-ID")}
-                    </TableCell>
-                  </TableRow>
-                ))
+                sales.map((sale) => {
+                  const adminFee = sale.admin_fee || 0;
+                  const total = sale.amount + adminFee;
+                  return (
+                    <TableRow key={sale.id}>
+                      <TableCell>
+                        {sale.createdAt.toLocaleString("id-ID", { hour12: false })}
+                      </TableCell>
+                      <TableCell>{sale.customer_name || "-"}</TableCell>
+                      <TableCell>{sale.phone}</TableCell>
+                      <TableCell className="text-right">
+                        {sale.amount.toLocaleString("id-ID")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {adminFee.toLocaleString("id-ID")}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {total.toLocaleString("id-ID")}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center h-24">
+                  <TableCell colSpan={6} className="text-center h-24">
                     Belum ada data penjualan.
                   </TableCell>
                 </TableRow>

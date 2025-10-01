@@ -46,7 +46,7 @@ const Index = () => {
     enabled: !!session?.user?.id,
   });
 
-  const handleAddSale = async (newSale: { name: string; phone: string; amount: number }) => {
+  const handleAddSale = async (newSale: { name: string; phone: string; amount: number; adminFee: number }) => {
     if (!session?.user?.id) {
       showError("Anda harus login untuk mencatat penjualan.");
       return;
@@ -58,6 +58,7 @@ const Index = () => {
           customer_name: newSale.name, 
           phone: newSale.phone, 
           amount: newSale.amount, 
+          admin_fee: newSale.adminFee,
           user_id: session.user.id 
         }]);
       if (error) throw error;
@@ -75,7 +76,8 @@ const Index = () => {
     navigate("/login");
   };
 
-  const totalSales = sales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
+  const totalSalesAmount = sales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
+  const totalAdminFee = sales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
   
   const previousCustomers = sales
     ? Array.from(
@@ -126,7 +128,8 @@ const Index = () => {
           </div>
           <div className="lg:col-span-2">
             <DailySummary
-              totalSales={totalSales}
+              totalSalesAmount={totalSalesAmount}
+              totalAdminFee={totalAdminFee}
               initialBalance={initialBalance}
               onSetInitialBalance={setInitialBalance}
             />

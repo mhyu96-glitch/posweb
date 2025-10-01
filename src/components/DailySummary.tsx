@@ -14,13 +14,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface DailySummaryProps {
-  totalSales: number;
+  totalSalesAmount: number;
+  totalAdminFee: number;
   initialBalance: number;
   onSetInitialBalance: (balance: number) => void;
 }
 
 export const DailySummary = ({
-  totalSales,
+  totalSalesAmount,
+  totalAdminFee,
   initialBalance,
   onSetInitialBalance,
 }: DailySummaryProps) => {
@@ -30,7 +32,8 @@ export const DailySummary = ({
     setBalanceInput(initialBalance.toString());
   }, [initialBalance]);
 
-  const finalBalance = initialBalance - totalSales;
+  const totalRevenue = totalSalesAmount + totalAdminFee;
+  const finalBalance = initialBalance - totalRevenue;
 
   const handleSetBalance = () => {
     const numericBalance = parseFloat(balanceInput);
@@ -67,9 +70,21 @@ export const DailySummary = ({
             </span>
           </div>
           <div className="flex justify-between">
-            <span>Total Penjualan Hari Ini:</span>
+            <span>Total Penjualan:</span>
+            <span className="font-medium">
+              Rp {totalSalesAmount.toLocaleString("id-ID")}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Total Biaya Admin:</span>
+            <span className="font-medium">
+              Rp {totalAdminFee.toLocaleString("id-ID")}
+            </span>
+          </div>
+          <div className="flex justify-between pt-2 border-t">
+            <span>Total Pemasukan Hari Ini:</span>
             <span className="font-medium text-red-600">
-              - Rp {totalSales.toLocaleString("id-ID")}
+              - Rp {totalRevenue.toLocaleString("id-ID")}
             </span>
           </div>
         </div>

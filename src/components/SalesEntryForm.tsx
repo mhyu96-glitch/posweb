@@ -31,7 +31,7 @@ interface Customer {
 }
 
 interface SalesEntryFormProps {
-  onAddSale: (sale: { name: string; phone: string; amount: number }) => void;
+  onAddSale: (sale: { name: string; phone: string; amount: number; adminFee: number }) => void;
   previousCustomers: Customer[];
 }
 
@@ -42,6 +42,7 @@ export const SalesEntryForm = ({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
+  const [adminFee, setAdminFee] = useState("");
   const [open, setOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,14 +57,21 @@ export const SalesEntryForm = ({
       showError("Nominal harus berupa angka positif.");
       return;
     }
+    
+    const numericAdminFee = parseFloat(adminFee) || 0;
+     if (isNaN(numericAdminFee) || numericAdminFee < 0) {
+      showError("Biaya admin harus berupa angka positif.");
+      return;
+    }
 
-    onAddSale({ name, phone, amount: numericAmount });
+    onAddSale({ name, phone, amount: numericAmount, adminFee: numericAdminFee });
     showSuccess("Penjualan berhasil dicatat!");
 
     // Reset form
     setName("");
     setPhone("");
     setAmount("");
+    setAdminFee("");
   };
 
   const handleNameSelect = (currentValue: string) => {
@@ -143,6 +151,16 @@ export const SalesEntryForm = ({
               placeholder="Contoh: 50000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="admin-fee">Biaya Admin (Rp)</Label>
+            <Input
+              id="admin-fee"
+              type="number"
+              placeholder="Contoh: 2500"
+              value={adminFee}
+              onChange={(e) => setAdminFee(e.target.value)}
             />
           </div>
           <Button type="submit" className="w-full">
