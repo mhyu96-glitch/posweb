@@ -11,14 +11,33 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { showSuccess, showError } from "@/utils/toast";
+import { ChevronsUpDown } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface SalesEntryFormProps {
   onAddSale: (sale: { phone: string; amount: number }) => void;
+  previousPhones: string[];
 }
 
-export const SalesEntryForm = ({ onAddSale }: SalesEntryFormProps) => {
+export const SalesEntryForm = ({
+  onAddSale,
+  previousPhones,
+}: SalesEntryFormProps) => {
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
+  const [open, setOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,13 +69,43 @@ export const SalesEntryForm = ({ onAddSale }: SalesEntryFormProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="phone">Nomor HP Pelanggan</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="Contoh: 081234567890"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between font-normal"
+                >
+                  {phone || "Pilih atau ketik nomor..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput
+                    placeholder="Cari atau masukkan nomor baru..."
+                    value={phone}
+                    onValueChange={setPhone}
+                  />
+                  <CommandEmpty>Nomor tidak ditemukan.</CommandEmpty>
+                  <CommandGroup>
+                    {previousPhones.map((prevPhone) => (
+                      <CommandItem
+                        key={prevPhone}
+                        value={prevPhone}
+                        onSelect={(currentValue) => {
+                          setPhone(currentValue === phone ? "" : currentValue);
+                          setOpen(false);
+                        }}
+                      >
+                        {prevPhone}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Nominal Penjualan (Rp)</Label>

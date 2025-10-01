@@ -71,6 +71,10 @@ const Index = () => {
   };
 
   const totalSales = sales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
+  
+  const uniquePhones = sales 
+    ? [...new Set(sales.map(sale => sale.phone).filter(Boolean) as string[])] 
+    : [];
 
   if (isSessionLoading) {
     return (
@@ -101,7 +105,7 @@ const Index = () => {
       <main className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1">
-            <SalesEntryForm onAddSale={handleAddSale} />
+            <SalesEntryForm onAddSale={handleAddSale} previousPhones={uniquePhones} />
           </div>
           <div className="lg:col-span-2">
             <DailySummary
