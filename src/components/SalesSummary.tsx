@@ -13,19 +13,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface DailySummaryProps {
+interface SalesSummaryProps {
+  title: string;
+  description: string;
   totalSalesAmount: number;
   totalAdminFee: number;
   initialBalance: number;
   onSetInitialBalance: (balance: number) => void;
 }
 
-export const DailySummary = ({
+export const SalesSummary = ({
+  title,
+  description,
   totalSalesAmount,
   totalAdminFee,
   initialBalance,
   onSetInitialBalance,
-}: DailySummaryProps) => {
+}: SalesSummaryProps) => {
   const [balanceInput, setBalanceInput] = useState(initialBalance.toString());
 
   useEffect(() => {
@@ -45,10 +49,8 @@ export const DailySummary = ({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Ringkasan Harian</CardTitle>
-        <CardDescription>
-          Atur saldo awal dan lihat ringkasan penjualan harian Anda.
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center space-x-2">
@@ -88,7 +90,7 @@ export const DailySummary = ({
             </span>
           </div>
           <div className="flex justify-between pt-2 border-t">
-            <span>Total Pemasukan Hari Ini:</span>
+            <span>Total Pemasukan Periode Ini:</span>
             <span className="font-medium text-red-600">
               - Rp {totalRevenue.toLocaleString("id-ID")}
             </span>

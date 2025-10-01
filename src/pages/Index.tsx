@@ -1,23 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SalesEntryForm } from "@/components/SalesEntryForm";
-import { DailySummary } from "@/components/DailySummary";
+import { SalesSummary } from "@/components/SalesSummary";
 import { SalesHistoryTable, Sale } from "@/components/SalesHistoryTable";
+import { ReportFilters } from "@/components/ReportFilters";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt } from "@/components/Receipt";
+import { isSameDay, isSameMonth, isSameYear } from "date-fns";
 
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [initialBalance, setInitialBalance] = useState(0);
   const [receiptToPrint, setReceiptToPrint] = useState<Sale | null>(null);
+  const [filter, setFilter] = useState<{
+    mode: "all" | "daily" | "monthly" | "yearly";
+    value?: { date?: Date; month?: number; year?: number };
+  }>({ mode: "all" });
 
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
@@ -46,6 +52,24 @@ const Index = () => {
     },
     enabled: !!session?.user?.id,
   });
+
+  const filteredSales = useMemo(() => {
+    if (!sales) return [];
+    const { mode, value } = filter;
+    if (mode === "daily" && value?.date) {
+      return sales.filter(sale => isSameDay(sale.createdAt, value.date!));
+    }
+    if (mode === "monthly" && value?.month && value?.year) {
+      return sales.filter(sale => 
+        isSameMonth(sale.createdAt, new Date(value.year!, value.month! - 1)) &&
+        isSameYear(sale.createdAt, new Date(value.year!, value.month! - 1))
+      );
+    }
+    if (mode === "yearly" && value?.year) {
+      return sales.filter(sale => isSameYear(sale.createdAt, new Date(value.year!, 0)));
+    }
+    return sales;
+  }, [sales, filter]);
 
   const handleAddSale = async (newSale: { name: string; phone: string; amount: number; adminFee: number }) => {
     if (!session?.user?.id) {
@@ -98,8 +122,8 @@ const Index = () => {
     };
   }, []);
 
-  const totalSalesAmount = sales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
-  const totalAdminFee = sales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
+  const totalSalesAmount = filteredSales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
+  const totalAdminFee = filteredSales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
   
   const previousCustomers = sales
     ? Array.from(
@@ -156,7 +180,9 @@ const Index = () => {
             <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
           </div>
           <div className="lg:col-span-2">
-            <DailySummary
+            <SalesSummary
+              title="Ringkasan Penjualan"
+              description="Ringkasan penjualan berdasarkan filter yang dipilih."
               totalSalesAmount={totalSalesAmount}
               totalAdminFee={totalAdminFee}
               initialBalance={initialBalance}
@@ -165,11 +191,19 @@ const Index = () => {
           </div>
         </div>
 
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Laporan Penjualan</h2>
+          <ReportFilters 
+            onFilterChange={(mode, value) => setFilter({ mode, value })}
+            onClearFilters={() => setFilter({ mode: "all" })}
+          />
+        </div>
+
         <div className="w-full">
           {isSalesLoading ? (
             <Skeleton className="h-96 w-full" />
           ) : (
-            <SalesHistoryTable sales={sales || []} onPrintReceipt={handlePrintReceipt} />
+            <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} />
           )}
         </div>
       </main>
