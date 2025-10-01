@@ -46,7 +46,7 @@ const Index = () => {
     enabled: !!session?.user?.id,
   });
 
-  const handleAddSale = async (newSale: { phone: string; amount: number }) => {
+  const handleAddSale = async (newSale: { name: string; phone: string; amount: number }) => {
     if (!session?.user?.id) {
       showError("Anda harus login untuk mencatat penjualan.");
       return;
@@ -54,7 +54,12 @@ const Index = () => {
     try {
       const { error } = await supabase
         .from("sales")
-        .insert([{ ...newSale, user_id: session.user.id }]);
+        .insert([{ 
+          customer_name: newSale.name, 
+          phone: newSale.phone, 
+          amount: newSale.amount, 
+          user_id: session.user.id 
+        }]);
       if (error) throw error;
       showSuccess("Penjualan berhasil dicatat!");
       queryClient.invalidateQueries({ queryKey: ["sales", session.user.id] });

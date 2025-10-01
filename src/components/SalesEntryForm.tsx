@@ -24,10 +24,9 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 
 interface SalesEntryFormProps {
-  onAddSale: (sale: { phone: string; amount: number }) => void;
+  onAddSale: (sale: { name: string; phone: string; amount: number }) => void;
   previousPhones: string[];
 }
 
@@ -35,6 +34,7 @@ export const SalesEntryForm = ({
   onAddSale,
   previousPhones,
 }: SalesEntryFormProps) => {
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [open, setOpen] = useState(false);
@@ -52,10 +52,11 @@ export const SalesEntryForm = ({
       return;
     }
 
-    onAddSale({ phone, amount: numericAmount });
+    onAddSale({ name, phone, amount: numericAmount });
     showSuccess("Penjualan berhasil dicatat!");
 
     // Reset form
+    setName("");
     setPhone("");
     setAmount("");
   };
@@ -67,6 +68,16 @@ export const SalesEntryForm = ({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nama Pelanggan (Opsional)</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="Contoh: Budi"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="phone">Nomor HP Pelanggan</Label>
             <Popover open={open} onOpenChange={setOpen}>

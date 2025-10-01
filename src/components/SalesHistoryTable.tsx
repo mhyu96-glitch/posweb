@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface Sale {
   id: string | number;
+  customer_name?: string;
   phone: string;
   amount: number;
   createdAt: Date;
@@ -33,6 +34,7 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
             <TableHeader>
               <TableRow>
                 <TableHead>Waktu Transaksi</TableHead>
+                <TableHead>Nama Pelanggan</TableHead>
                 <TableHead>Nomor HP</TableHead>
                 <TableHead className="text-right">Nominal (Rp)</TableHead>
               </TableRow>
@@ -44,6 +46,7 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
                     <TableCell>
                       {sale.createdAt.toLocaleString("id-ID", { hour12: false })}
                     </TableCell>
+                    <TableCell>{sale.customer_name || "-"}</TableCell>
                     <TableCell>{sale.phone}</TableCell>
                     <TableCell className="text-right">
                       {sale.amount.toLocaleString("id-ID")}
@@ -52,7 +55,7 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center h-24">
+                  <TableCell colSpan={4} className="text-center h-24">
                     Belum ada data penjualan.
                   </TableCell>
                 </TableRow>
