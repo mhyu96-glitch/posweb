@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CurrencyInput } from "./CurrencyInput";
 
 interface SalesSummaryProps {
   title: string;
@@ -38,12 +38,11 @@ export const SalesSummary = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="initial-balance">Saldo Awal (Rp)</Label>
-          <Input
+          <Label htmlFor="initial-balance">Saldo Awal</Label>
+          <CurrencyInput
             id="initial-balance"
-            type="number"
             value={initialBalance}
-            onChange={(e) => onSetInitialBalance(parseFloat(e.target.value) || 0)}
+            onValueChange={(value) => onSetInitialBalance(value || 0)}
             placeholder="Masukkan saldo awal kas"
           />
         </div>
