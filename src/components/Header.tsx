@@ -36,16 +36,6 @@ export const Header = () => {
           </NavLink>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <NavLink
-              to="/customers"
-              className={({ isActive }) =>
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground transition-colors hover:text-foreground"
-              }
-            >
-              Pelanggan
-            </NavLink>
-            <NavLink
               to="/products"
               className={({ isActive }) =>
                 isActive

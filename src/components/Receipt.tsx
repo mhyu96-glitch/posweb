@@ -9,6 +9,9 @@ interface ReceiptProps {
 export const Receipt = ({ sale }: ReceiptProps) => {
   const adminFee = sale.admin_fee || 0;
   const total = sale.amount + adminFee;
+  const destinationDetail = sale.bank_name
+    ? `${sale.bank_name.toUpperCase()} - ${sale.phone}`
+    : sale.phone;
 
   return (
     <div className="receipt-component w-full max-w-[300px] mx-auto bg-white p-4 font-mono text-sm text-black rounded-lg shadow-lg">
@@ -28,7 +31,7 @@ export const Receipt = ({ sale }: ReceiptProps) => {
       </div>
       <div className="space-y-1 text-xs">
         <p>Pelanggan: {sale.customer_name || "-"}</p>
-        <p>No. HP: {sale.phone}</p>
+        <p>Tujuan: {destinationDetail || "-"}</p>
         <p>Metode: {sale.category || "Tunai"}</p>
       </div>
       <div className="border-t border-dashed border-black my-3 pt-2">
