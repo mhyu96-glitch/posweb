@@ -200,8 +200,7 @@ const Index = () => {
           <div className="lg:col-span-1">
             <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
           </div>
-          <div className="lg:col-span-2 space-y-8">
-            <SalesChart sales={sales || []} />
+          <div className="lg:col-span-2">
             <SalesSummary
               title="Ringkasan Penjualan"
               description="Ringkasan penjualan berdasarkan filter yang dipilih."
@@ -236,6 +235,10 @@ const Index = () => {
           ) : (
             <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} />
           )}
+        </div>
+
+        <div className="print:hidden">
+          <SalesChart sales={sales || []} />
         </div>
       </main>
 
