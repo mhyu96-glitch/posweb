@@ -24,7 +24,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Printer, Trash2 } from "lucide-react";
+import { Download, Printer, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +51,7 @@ interface SalesHistoryTableProps {
   sales: Sale[];
   onPrintReceipt: (sale: Sale) => void;
   onDeleteSale: (saleId: string | number) => void;
+  onExportCSV: () => void;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -59,6 +60,7 @@ export const SalesHistoryTable = ({
   sales,
   onPrintReceipt,
   onDeleteSale,
+  onExportCSV,
 }: SalesHistoryTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -75,15 +77,24 @@ export const SalesHistoryTable = ({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Riwayat Penjualan</CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handlePrint}
-          className="print:hidden"
-        >
-          <Printer className="mr-2 h-4 w-4" />
-          Cetak Laporan
-        </Button>
+        <div className="flex items-center gap-2 print:hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExportCSV}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Ekspor CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrint}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            Cetak Laporan
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="border rounded-md">

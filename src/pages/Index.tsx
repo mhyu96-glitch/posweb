@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt } from "@/components/Receipt";
-import { isSameDay, isSameMonth, isSameYear } from "date-fns";
+import { isSameDay, isSameMonth, isSameYear, startOfDay, endOfDay } from "date-fns";
 import { SalesChart } from "@/components/SalesChart";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { DateRange } from "react-day-picker";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,8 +25,9 @@ const Index = () => {
   const [receiptToPrint, setReceiptToPrint] = useState<Sale | null>(null);
   const [filter, setFilter] = useState<{
     mode: "all" | "daily" | "monthly" | "yearly";
-    value?: { date?: Date; month?: number; year?: number };
+    value?: { dateRange?: DateRange; month?: number; year?: number };
   }>({ mode: "all" });
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
   const [initialBalance, setInitialBalance] = useState(() => {
@@ -64,14 +67,25 @@ const Index = () => {
     enabled: !!session?.user?.id,
   });
 
+  const uniqueCategories = useMemo(() => {
+    if (!sales) return [];
+    const categories = new Set(sales.map(sale => sale.category).filter(Boolean) as string[]);
+    return Array.from(categories);
+  }, [sales]);
+
   const filteredSales = useMemo(() => {
     if (!sales) return [];
     const { mode, value } = filter;
 
     let dateFilteredSales = sales;
     if (mode === "daily") {
-      if (!value?.date) return [];
-      dateFilteredSales = sales.filter(sale => isSameDay(sale.createdAt, value.date!));
+      if (value?.dateRange?.from) {
+        const from = startOfDay(value.dateRange.from);
+        const to = value.dateRange.to ? endOfDay(value.dateRange.to) : endOfDay(value.dateRange.from);
+        dateFilteredSales = sales.filter(sale => sale.createdAt >= from && sale.createdAt <= to);
+      } else {
+        return [];
+      }
     } else if (mode === "monthly" && value?.month && value?.year) {
       dateFilteredSales = sales.filter(sale => 
         isSameMonth(sale.createdAt, new Date(value.year!, value.month! - 1)) &&
@@ -81,16 +95,21 @@ const Index = () => {
       dateFilteredSales = sales.filter(sale => isSameYear(sale.createdAt, new Date(value.year!, 0)));
     }
 
-    if (!searchTerm) {
-      return dateFilteredSales;
+    let categoryFilteredSales = dateFilteredSales;
+    if (categoryFilter) {
+      categoryFilteredSales = dateFilteredSales.filter(sale => sale.category === categoryFilter);
     }
 
-    return dateFilteredSales.filter(sale => {
+    if (!searchTerm) {
+      return categoryFilteredSales;
+    }
+
+    return categoryFilteredSales.filter(sale => {
       const nameMatch = sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
       const phoneMatch = sale.phone.toLowerCase().includes(searchTerm.toLowerCase());
       return nameMatch || phoneMatch;
     });
-  }, [sales, filter, searchTerm]);
+  }, [sales, filter, searchTerm, categoryFilter]);
 
   const handleAddSale = async (newSale: { name: string; phone: string; amount: number; adminFee: number; category: string }) => {
     if (!session?.user?.id) {
@@ -142,6 +161,41 @@ const Index = () => {
 
   const handlePrintReceipt = (sale: Sale) => {
     setReceiptToPrint(sale);
+  };
+
+  const handleExportCSV = () => {
+    if (!filteredSales || filteredSales.length === 0) {
+      showError("Tidak ada data untuk diekspor.");
+      return;
+    }
+  
+    const headers = [
+      "Waktu Transaksi", "Nama Pelanggan", "Nomor HP", "Kategori",
+      "Nominal (Rp)", "Admin (Rp)", "Total (Rp)"
+    ];
+  
+    const rows = filteredSales.map(sale => [
+      `"${sale.createdAt.toLocaleString("id-ID", { hour12: false })}"`,
+      `"${sale.customer_name || "-"}"`,
+      `"${sale.phone}"`,
+      `"${sale.category || "-"}"`,
+      sale.amount,
+      sale.admin_fee || 0,
+      sale.amount + (sale.admin_fee || 0),
+    ].join(','));
+  
+    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
+  
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const formattedDate = new Date().toISOString().slice(0, 10);
+    link.setAttribute("download", `laporan_penjualan_${formattedDate}.csv`);
+    document.body.appendChild(link);
+  
+    link.click();
+    document.body.removeChild(link);
+    showSuccess("Laporan berhasil diekspor!");
   };
 
   useEffect(() => {
@@ -208,9 +262,12 @@ const Index = () => {
         <p className="text-muted-foreground mt-2">
           Aplikasi pencatatan penjualan Toko Izzah
         </p>
-        <Button onClick={handleLogout} variant="outline" className="absolute top-0 right-0">
-          Logout
-        </Button>
+        <div className="absolute top-0 right-0 flex items-center gap-2">
+          <ThemeToggle />
+          <Button onClick={handleLogout} variant="outline">
+            Logout
+          </Button>
+        </div>
       </header>
 
       <main className="space-y-8">
@@ -243,7 +300,12 @@ const Index = () => {
           </div>
           <ReportFilters 
             onFilterChange={(mode, value) => setFilter({ mode, value })}
-            onClearFilters={() => setFilter({ mode: "all" })}
+            onClearFilters={() => {
+              setFilter({ mode: "all" });
+              setCategoryFilter("");
+            }}
+            onCategoryChange={setCategoryFilter}
+            categories={uniqueCategories}
           />
         </div>
 
@@ -255,6 +317,7 @@ const Index = () => {
               sales={filteredSales || []}
               onPrintReceipt={handlePrintReceipt}
               onDeleteSale={handleDeleteSale}
+              onExportCSV={handleExportCSV}
             />
           )}
         </div>
