@@ -25,14 +25,19 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 
+interface Customer {
+  name: string;
+  phone: string;
+}
+
 interface SalesEntryFormProps {
   onAddSale: (sale: { name: string; phone: string; amount: number }) => void;
-  previousPhones: string[];
+  previousCustomers: Customer[];
 }
 
 export const SalesEntryForm = ({
   onAddSale,
-  previousPhones,
+  previousCustomers,
 }: SalesEntryFormProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -61,6 +66,21 @@ export const SalesEntryForm = ({
     setAmount("");
   };
 
+  const handleNameSelect = (currentValue: string) => {
+    const selectedName = currentValue === name ? "" : currentValue;
+    setName(selectedName);
+
+    if (selectedName) {
+      const customer = previousCustomers.find(
+        (c) => c.name.toLowerCase() === selectedName.toLowerCase()
+      );
+      setPhone(customer ? customer.phone : "");
+    } else {
+      setPhone("");
+    }
+    setOpen(false);
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -70,16 +90,6 @@ export const SalesEntryForm = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nama Pelanggan (Opsional)</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Contoh: Budi"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Nomor HP Pelanggan</Label>
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -88,35 +98,42 @@ export const SalesEntryForm = ({
                   aria-expanded={open}
                   className="w-full justify-between font-normal"
                 >
-                  {phone || "Pilih atau ketik nomor..."}
+                  {name || "Pilih atau ketik nama..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                 <Command>
                   <CommandInput
-                    placeholder="Cari atau masukkan nomor baru..."
-                    value={phone}
-                    onValueChange={setPhone}
+                    placeholder="Cari atau masukkan nama baru..."
+                    value={name}
+                    onValueChange={setName}
                   />
-                  <CommandEmpty>Nomor tidak ditemukan.</CommandEmpty>
+                  <CommandEmpty>Nama tidak ditemukan.</CommandEmpty>
                   <CommandGroup>
-                    {previousPhones.map((prevPhone) => (
+                    {previousCustomers.map((customer) => (
                       <CommandItem
-                        key={prevPhone}
-                        value={prevPhone}
-                        onSelect={(currentValue) => {
-                          setPhone(currentValue === phone ? "" : currentValue);
-                          setOpen(false);
-                        }}
+                        key={customer.name}
+                        value={customer.name}
+                        onSelect={handleNameSelect}
                       >
-                        {prevPhone}
+                        {customer.name}
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 </Command>
               </PopoverContent>
             </Popover>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Nomor HP Pelanggan</Label>
+            <Input
+              id="phone"
+              type="text"
+              placeholder="Contoh: 08123456789"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Nominal Penjualan (Rp)</Label>

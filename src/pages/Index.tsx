@@ -77,8 +77,20 @@ const Index = () => {
 
   const totalSales = sales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
   
-  const uniquePhones = sales 
-    ? [...new Set(sales.map(sale => sale.phone).filter(Boolean) as string[])] 
+  const previousCustomers = sales
+    ? Array.from(
+        sales
+          .reduce((map, sale) => {
+            if (sale.customer_name) {
+              // Karena data sudah diurutkan dari yang terbaru, kita hanya ambil entri pertama untuk setiap nama
+              if (!map.has(sale.customer_name)) {
+                map.set(sale.customer_name, { name: sale.customer_name, phone: sale.phone });
+              }
+            }
+            return map;
+          }, new Map<string, { name: string; phone: string }>())
+          .values()
+      )
     : [];
 
   if (isSessionLoading) {
@@ -110,7 +122,7 @@ const Index = () => {
       <main className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="lg:col-span-1">
-            <SalesEntryForm onAddSale={handleAddSale} previousPhones={uniquePhones} />
+            <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
           </div>
           <div className="lg:col-span-2">
             <DailySummary
