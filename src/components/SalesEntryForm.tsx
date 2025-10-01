@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
 import { ChevronsUpDown } from "lucide-react";
 import {
@@ -31,9 +38,17 @@ interface Customer {
 }
 
 interface SalesEntryFormProps {
-  onAddSale: (sale: { name: string; phone: string; amount: number; adminFee: number }) => void;
+  onAddSale: (sale: { name: string; phone: string; amount: number; adminFee: number; category: string }) => void;
   previousCustomers: Customer[];
 }
+
+const categories = [
+  "Transfer Antar Bank",
+  "Transfer Beda Bank",
+  "DANA",
+  "Gopay",
+  "OVO",
+];
 
 export const SalesEntryForm = ({
   onAddSale,
@@ -43,12 +58,13 @@ export const SalesEntryForm = ({
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [adminFee, setAdminFee] = useState("");
+  const [category, setCategory] = useState("");
   const [open, setOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !amount) {
-      showError("Nomor HP dan Nominal harus diisi.");
+    if (!phone || !amount || !category) {
+      showError("Nomor HP, Nominal, dan Kategori harus diisi.");
       return;
     }
 
@@ -64,7 +80,7 @@ export const SalesEntryForm = ({
       return;
     }
 
-    onAddSale({ name, phone, amount: numericAmount, adminFee: numericAdminFee });
+    onAddSale({ name, phone, amount: numericAmount, adminFee: numericAdminFee, category });
     showSuccess("Penjualan berhasil dicatat!");
 
     // Reset form
@@ -72,6 +88,7 @@ export const SalesEntryForm = ({
     setPhone("");
     setAmount("");
     setAdminFee("");
+    setCategory("");
   };
 
   const handleNameSelect = (currentValue: string) => {
@@ -142,6 +159,21 @@ export const SalesEntryForm = ({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="category">Kategori Penjualan</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih kategori pembayaran" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Nominal Penjualan (Rp)</Label>

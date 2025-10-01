@@ -92,7 +92,7 @@ const Index = () => {
     });
   }, [sales, filter, searchTerm]);
 
-  const handleAddSale = async (newSale: { name: string; phone: string; amount: number; adminFee: number }) => {
+  const handleAddSale = async (newSale: { name: string; phone: string; amount: number; adminFee: number; category: string }) => {
     if (!session?.user?.id) {
       showError("Anda harus login untuk mencatat penjualan.");
       return;
@@ -105,6 +105,7 @@ const Index = () => {
           phone: newSale.phone, 
           amount: newSale.amount, 
           admin_fee: newSale.adminFee,
+          category: newSale.category,
           user_id: session.user.id 
         }]);
       if (error) throw error;

@@ -29,6 +29,7 @@ export const Receipt = ({ sale }: ReceiptProps) => {
       <div className="space-y-1 text-xs">
         <p>Pelanggan: {sale.customer_name || "-"}</p>
         <p>No. HP: {sale.phone}</p>
+        <p>Metode: {sale.category || "Tunai"}</p>
       </div>
       <div className="border-t border-dashed border-black my-3 pt-2">
         <div className="flex justify-between">

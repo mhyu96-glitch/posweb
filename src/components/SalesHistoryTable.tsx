@@ -43,6 +43,7 @@ export interface Sale {
   phone: string;
   amount: number;
   admin_fee?: number;
+  category?: string;
   createdAt: Date;
 }
 
@@ -92,6 +93,7 @@ export const SalesHistoryTable = ({
                 <TableHead>Waktu Transaksi</TableHead>
                 <TableHead>Nama Pelanggan</TableHead>
                 <TableHead>Nomor HP</TableHead>
+                <TableHead>Kategori</TableHead>
                 <TableHead className="text-center">Nominal (Rp)</TableHead>
                 <TableHead className="text-center">Admin (Rp)</TableHead>
                 <TableHead className="text-center">Total (Rp)</TableHead>
@@ -112,6 +114,7 @@ export const SalesHistoryTable = ({
                       </TableCell>
                       <TableCell>{sale.customer_name || "-"}</TableCell>
                       <TableCell>{sale.phone}</TableCell>
+                      <TableCell>{sale.category || "-"}</TableCell>
                       <TableCell className="text-center">
                         {sale.amount.toLocaleString("id-ID")}
                       </TableCell>
@@ -169,7 +172,7 @@ export const SalesHistoryTable = ({
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center h-24">
+                  <TableCell colSpan={8} className="text-center h-24">
                     Belum ada data penjualan.
                   </TableCell>
                 </TableRow>
