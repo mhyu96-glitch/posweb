@@ -43,12 +43,6 @@ interface Customer {
   name: string;
 }
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-}
-
 interface SalesEntryFormProps {
   onAddSale: (sale: {
     name: string;
@@ -57,10 +51,8 @@ interface SalesEntryFormProps {
     amount: number;
     adminFee: number;
     category: string;
-    productId?: string;
   }) => void;
   previousCustomers: Customer[];
-  products: Product[];
 }
 
 const categories = [
@@ -69,12 +61,11 @@ const categories = [
 const eWalletCategories = ["DANA", "Gopay", "OVO"];
 const bankCategories = ["Transfer Antar Bank", "Transfer Beda Bank"];
 
-export const SalesEntryForm = ({ onAddSale, previousCustomers, products }: SalesEntryFormProps) => {
+export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormProps) => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [adminFee, setAdminFee] = useState("");
   const [category, setCategory] = useState("");
-  const [productId, setProductId] = useState<string | undefined>();
   const [comboboxOpen, setComboboxOpen] = useState(false);
 
   // State for destination details
@@ -94,19 +85,6 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers, products }: Sales
   const formatCurrency = (value: string) => {
     if (!value) return "";
     return new Intl.NumberFormat("id-ID").format(Number(value));
-  };
-
-  const handleProductChange = (selectedProductId: string) => {
-    const product = products.find((p) => p.id === selectedProductId);
-    if (product) {
-      setProductId(product.id);
-      setAmount(product.price.toString());
-      const matchingCategory = categories.find(cat => product.name.toLowerCase().includes(cat.toLowerCase()));
-      if (matchingCategory) handleCategoryChange(matchingCategory);
-    } else {
-      setProductId(undefined);
-      setAmount("");
-    }
   };
 
   const handleCategoryChange = (value: string) => {
@@ -154,12 +132,11 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers, products }: Sales
       amount: parseFloat(amount),
       adminFee: parseFloat(adminFee) || 0,
       category,
-      productId,
     });
     showSuccess("Penjualan berhasil dicatat!");
 
     // Reset form
-    setName(""); setAmount(""); setAdminFee(""); setCategory(""); setProductId(undefined); setDestination(""); setBankName("");
+    setName(""); setAmount(""); setAdminFee(""); setCategory(""); setDestination(""); setBankName("");
   };
 
   return (
@@ -168,15 +145,6 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers, products }: Sales
         <CardHeader><CardTitle>Catat Penjualan Baru</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Produk / Layanan</Label>
-              <Select onValueChange={handleProductChange} value={productId}>
-                <SelectTrigger><SelectValue placeholder="Pilih produk atau isi manual" /></SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} - Rp {p.price.toLocaleString('id-ID')}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Nama Pelanggan (Opsional)</Label>
               <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>

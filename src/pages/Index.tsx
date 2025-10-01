@@ -18,12 +18,6 @@ import { Input } from "@/components/ui/input";
 import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-}
-
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -72,20 +66,6 @@ const Index = () => {
     enabled: !!session?.user?.id,
   });
 
-  const { data: products, isLoading: isProductsLoading } = useQuery<Product[]>({
-    queryKey: ["products", session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, name, price")
-        .order("name", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user?.id,
-  });
-
   const uniqueCategories = useMemo(() => {
     if (!sales) return [];
     const categories = new Set(sales.map(sale => sale.category).filter(Boolean) as string[]);
@@ -130,7 +110,7 @@ const Index = () => {
     });
   }, [sales, filter, searchTerm, categoryFilter]);
 
-  const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; productId?: string; }) => {
+  const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; }) => {
     if (!session?.user?.id) {
       showError("Anda harus login untuk mencatat penjualan.");
       return;
@@ -145,7 +125,6 @@ const Index = () => {
           amount: newSale.amount, 
           admin_fee: newSale.adminFee,
           category: newSale.category,
-          product_id: newSale.productId,
           user_id: session.user.id 
         }]);
       if (error) throw error;
@@ -213,7 +192,7 @@ const Index = () => {
       }, new Map<string, { name: string }>()).values())
     : [], [sales]);
 
-  if (isSessionLoading || isProductsLoading) {
+  if (isSessionLoading || isSalesLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6 space-y-4">
         <Skeleton className="h-8 w-1/4" />
@@ -235,7 +214,7 @@ const Index = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
           <div className="lg:col-span-1">
-            <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} products={products || []} />
+            <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
           </div>
           <div className="lg:col-span-2">
             <SalesSummary title="Ringkasan Penjualan" description="Ringkasan penjualan berdasarkan filter yang dipilih." totalSalesAmount={totalSalesAmount} totalAdminFee={totalAdminFee} initialBalance={initialBalance} onSetInitialBalance={setInitialBalance} />
