@@ -9,15 +9,14 @@ import { SalesSummary } from "@/components/SalesSummary";
 import { SalesHistoryTable, Sale } from "@/components/SalesHistoryTable";
 import { ReportFilters } from "@/components/ReportFilters";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { Button } from "@/components/ui/button";
 import { showError, showSuccess } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt } from "@/components/Receipt";
-import { isSameDay, isSameMonth, isSameYear, startOfDay, endOfDay } from "date-fns";
+import { isSameMonth, isSameYear, startOfDay, endOfDay } from "date-fns";
 import { SalesChart } from "@/components/SalesChart";
 import { Input } from "@/components/ui/input";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { DateRange } from "react-day-picker";
+import { DashboardMetrics } from "@/components/DashboardMetrics";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -153,12 +152,6 @@ const Index = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    queryClient.clear();
-    navigate("/login");
-  };
-
   const handlePrintReceipt = (sale: Sale) => {
     setReceiptToPrint(sale);
   };
@@ -236,10 +229,14 @@ const Index = () => {
   if (isSessionLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6">
-        <Skeleton className="h-12 w-1/2 mx-auto mb-8" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <Skeleton className="h-64 lg:col-span-1" />
-          <Skeleton className="h-64 lg:col-span-2" />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-1/4" />
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </div>
+          <Skeleton className="h-96" />
         </div>
       </div>
     );
@@ -255,22 +252,19 @@ const Index = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6">
-      <header className="text-center mb-8 relative print:hidden">
-        <h1 className="text-4xl font-bold tracking-tight md:text-5xl bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-          Catatan Penjualan Harian
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Aplikasi pencatatan penjualan Toko Izzah
-        </p>
-        <div className="absolute top-0 right-0 flex items-center gap-2">
-          <ThemeToggle />
-          <Button onClick={handleLogout} variant="outline">
-            Logout
-          </Button>
-        </div>
-      </header>
-
       <main className="space-y-8">
+        <div className="print:hidden">
+          {isSalesLoading ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+              <Skeleton className="h-28" />
+            </div>
+          ) : (
+            <DashboardMetrics sales={sales || []} />
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
           <div className="lg:col-span-1">
             <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
