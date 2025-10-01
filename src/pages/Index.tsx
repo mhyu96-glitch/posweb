@@ -143,7 +143,7 @@ const Index = () => {
           Catatan Penjualan Harian
         </h1>
         <p className="text-muted-foreground mt-2">
-          Aplikasi sederhana untuk mencatat penjualan Anda.
+          Aplikasi pencatatan penjualan Toko Izzah
         </p>
         <Button onClick={handleLogout} variant="outline" className="absolute top-0 right-0">
           Logout
