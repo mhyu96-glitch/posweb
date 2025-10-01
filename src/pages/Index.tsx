@@ -14,16 +14,27 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt } from "@/components/Receipt";
 import { isSameDay, isSameMonth, isSameYear } from "date-fns";
+import { SalesChart } from "@/components/SalesChart";
+import { Input } from "@/components/ui/input";
 
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [initialBalance, setInitialBalance] = useState(0);
   const [receiptToPrint, setReceiptToPrint] = useState<Sale | null>(null);
   const [filter, setFilter] = useState<{
     mode: "all" | "daily" | "monthly" | "yearly";
     value?: { date?: Date; month?: number; year?: number };
   }>({ mode: "all" });
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [initialBalance, setInitialBalance] = useState(() => {
+    const savedBalance = localStorage.getItem("initialBalance");
+    return savedBalance ? parseFloat(savedBalance) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("initialBalance", initialBalance.toString());
+  }, [initialBalance]);
 
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
@@ -57,21 +68,29 @@ const Index = () => {
     if (!sales) return [];
     const { mode, value } = filter;
 
+    let dateFilteredSales = sales;
     if (mode === "daily") {
       if (!value?.date) return [];
-      return sales.filter(sale => isSameDay(sale.createdAt, value.date!));
-    }
-    if (mode === "monthly" && value?.month && value?.year) {
-      return sales.filter(sale => 
+      dateFilteredSales = sales.filter(sale => isSameDay(sale.createdAt, value.date!));
+    } else if (mode === "monthly" && value?.month && value?.year) {
+      dateFilteredSales = sales.filter(sale => 
         isSameMonth(sale.createdAt, new Date(value.year!, value.month! - 1)) &&
         isSameYear(sale.createdAt, new Date(value.year!, value.month! - 1))
       );
+    } else if (mode === "yearly" && value?.year) {
+      dateFilteredSales = sales.filter(sale => isSameYear(sale.createdAt, new Date(value.year!, 0)));
     }
-    if (mode === "yearly" && value?.year) {
-      return sales.filter(sale => isSameYear(sale.createdAt, new Date(value.year!, 0)));
+
+    if (!searchTerm) {
+      return dateFilteredSales;
     }
-    return sales;
-  }, [sales, filter]);
+
+    return dateFilteredSales.filter(sale => {
+      const nameMatch = sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const phoneMatch = sale.phone.toLowerCase().includes(searchTerm.toLowerCase());
+      return nameMatch || phoneMatch;
+    });
+  }, [sales, filter, searchTerm]);
 
   const handleAddSale = async (newSale: { name: string; phone: string; amount: number; adminFee: number }) => {
     if (!session?.user?.id) {
@@ -181,7 +200,8 @@ const Index = () => {
           <div className="lg:col-span-1">
             <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
+            <SalesChart sales={sales || []} />
             <SalesSummary
               title="Ringkasan Penjualan"
               description="Ringkasan penjualan berdasarkan filter yang dipilih."
@@ -194,7 +214,16 @@ const Index = () => {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Laporan Penjualan</h2>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h2 className="text-2xl font-bold">Laporan Penjualan</h2>
+            <div className="w-full md:w-auto md:max-w-sm">
+              <Input
+                placeholder="Cari nama atau nomor HP..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
           <ReportFilters 
             onFilterChange={(mode, value) => setFilter({ mode, value })}
             onClearFilters={() => setFilter({ mode: "all" })}
