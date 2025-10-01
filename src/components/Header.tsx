@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Clock } from "lucide-react";
+import { User, LogOut, Clock, Users as UsersIcon } from "lucide-react";
 import { useShift } from "./ShiftProvider";
 import { showSuccess, showError } from "@/utils/toast";
 
@@ -21,6 +21,21 @@ export const Header = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeShift, endShift } = useShift();
+
+  const { data: session } = useQuery({
+    queryKey: ["session"],
+    queryFn: async () => (await supabase.auth.getSession()).data.session,
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data } = await supabase.from("profiles").select("role").eq("id", session.user.id).single();
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -60,6 +75,18 @@ export const Header = () => {
             >
               Produk
             </NavLink>
+            {profile?.role === 'admin' && (
+              <NavLink
+                to="/users"
+                className={({ isActive }) =>
+                  isActive
+                    ? "text-foreground"
+                    : "text-muted-foreground transition-colors hover:text-foreground"
+                }
+              >
+                Pengguna
+              </NavLink>
+            )}
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
@@ -91,6 +118,12 @@ export const Header = () => {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
                 </DropdownMenuItem>
+                {profile?.role === 'admin' && (
+                  <DropdownMenuItem onClick={() => navigate("/users")}>
+                    <UsersIcon className="mr-2 h-4 w-4" />
+                    <span>Manajemen Pengguna</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
