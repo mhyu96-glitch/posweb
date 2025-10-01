@@ -18,6 +18,12 @@ import { Input } from "@/components/ui/input";
 import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
 
+interface Settings {
+  shop_name?: string | null;
+  shop_address?: string | null;
+  shop_phone?: string | null;
+}
+
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -62,6 +68,21 @@ const Index = () => {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data.map(sale => ({ ...sale, createdAt: new Date(sale.created_at) }));
+    },
+    enabled: !!session?.user?.id,
+  });
+
+  const { data: settings } = useQuery<Settings | null>({
+    queryKey: ["settings", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
+        .from("settings")
+        .select("shop_name, shop_address, shop_phone")
+        .eq("user_id", session.user.id)
+        .single();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
     },
     enabled: !!session?.user?.id,
   });
@@ -203,7 +224,7 @@ const Index = () => {
   }
 
   if (receiptToPrint) {
-    return <div id="receipt-print-area"><Receipt sale={receiptToPrint} /></div>;
+    return <div id="receipt-print-area"><Receipt sale={receiptToPrint} settings={settings} /></div>;
   }
 
   return (

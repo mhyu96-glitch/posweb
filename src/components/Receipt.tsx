@@ -2,11 +2,18 @@
 
 import { Sale } from "./SalesHistoryTable";
 
-interface ReceiptProps {
-  sale: Sale;
+interface Settings {
+  shop_name?: string | null;
+  shop_address?: string | null;
+  shop_phone?: string | null;
 }
 
-export const Receipt = ({ sale }: ReceiptProps) => {
+interface ReceiptProps {
+  sale: Sale;
+  settings?: Settings | null;
+}
+
+export const Receipt = ({ sale, settings }: ReceiptProps) => {
   const adminFee = sale.admin_fee || 0;
   const total = sale.amount + adminFee;
   const destinationDetail = sale.bank_name
@@ -16,8 +23,9 @@ export const Receipt = ({ sale }: ReceiptProps) => {
   return (
     <div className="receipt-component w-full max-w-[300px] mx-auto bg-white p-4 font-mono text-sm text-black rounded-lg shadow-lg">
       <div className="text-center">
-        <h2 className="text-lg font-bold">STRUK PEMBAYARAN</h2>
-        <p className="text-xs">Catatan Penjualan Harian</p>
+        <h2 className="text-lg font-bold">{settings?.shop_name || "STRUK PEMBAYARAN"}</h2>
+        {settings?.shop_address && <p className="text-xs">{settings.shop_address}</p>}
+        {settings?.shop_phone && <p className="text-xs">{settings.shop_phone}</p>}
       </div>
       <div className="border-t border-b border-dashed border-black my-3 py-2">
         <div className="flex justify-between">
