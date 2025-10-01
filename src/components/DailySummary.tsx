@@ -30,7 +30,7 @@ export const DailySummary = ({
     setBalanceInput(initialBalance.toString());
   }, [initialBalance]);
 
-  const finalBalance = initialBalance + totalSales;
+  const finalBalance = initialBalance - totalSales;
 
   const handleSetBalance = () => {
     const numericBalance = parseFloat(balanceInput);
@@ -68,8 +68,8 @@ export const DailySummary = ({
           </div>
           <div className="flex justify-between">
             <span>Total Penjualan Hari Ini:</span>
-            <span className="font-medium text-green-600">
-              + Rp {totalSales.toLocaleString("id-ID")}
+            <span className="font-medium text-red-600">
+              - Rp {totalSales.toLocaleString("id-ID")}
             </span>
           </div>
         </div>
