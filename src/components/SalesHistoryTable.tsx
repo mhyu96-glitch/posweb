@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Printer, Trash2, FileDown } from "lucide-react";
+import { MoreHorizontal, Printer, Trash2 } from "lucide-react";
 
 export interface Sale {
   id: string | number;
@@ -33,23 +33,15 @@ interface SalesHistoryTableProps {
   sales: Sale[];
   onPrintReceipt: (sale: Sale) => void;
   onDeleteSale: (saleId: string | number) => void;
-  onExportCSV: () => void;
 }
 
 export const SalesHistoryTable = ({
   sales,
   onPrintReceipt,
   onDeleteSale,
-  onExportCSV,
 }: SalesHistoryTableProps) => {
   return (
     <div className="rounded-md border">
-      <div className="p-4">
-        <Button onClick={onExportCSV}>
-          <FileDown className="mr-2 h-4 w-4" />
-          Ekspor ke CSV
-        </Button>
-      </div>
       <Table>
         <TableHeader>
           <TableRow>

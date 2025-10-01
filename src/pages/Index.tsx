@@ -17,6 +17,15 @@ import { SalesChart } from "@/components/SalesChart";
 import { Input } from "@/components/ui/input";
 import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FileDown } from "lucide-react";
 
 interface Settings {
   shop_name?: string;
@@ -202,9 +211,6 @@ const Index = () => {
     return () => window.removeEventListener("afterprint", handleAfterPrint);
   }, []);
 
-  const totalSalesAmount = filteredSales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
-  const totalAdminFee = filteredSales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
-  
   const previousCustomers = useMemo(() => sales
     ? Array.from(sales.reduce((map, sale) => {
         if (sale.customer_name) map.set(sale.customer_name, { name: sale.customer_name });
@@ -232,27 +238,50 @@ const Index = () => {
         <div className="print:hidden">
           <DashboardMetrics sales={sales || []} />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
-          <div className="lg:col-span-1">
+        
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start print:hidden">
+          <div className="lg:col-span-3 space-y-8">
+            <SalesChart sales={sales || []} />
+            <Card>
+              <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Riwayat Transaksi</CardTitle>
+                  <CardDescription>Lihat dan kelola semua transaksi Anda.</CardDescription>
+                </div>
+                <div className="flex w-full md:w-auto items-center gap-2">
+                  <Input 
+                    placeholder="Cari nama atau tujuan..." 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    className="w-full md:w-auto"
+                  />
+                  <Button onClick={handleExportCSV} variant="outline" className="whitespace-nowrap">
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Ekspor
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <ReportFilters onFilterChange={(mode, value) => setFilter({ mode, value })} onClearFilters={() => { setFilter({ mode: "all" }); setCategoryFilter(""); }} onCategoryChange={setCategoryFilter} categories={uniqueCategories} />
+                  <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} onDeleteSale={handleDeleteSale} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2 space-y-8">
             <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
-          </div>
-          <div className="lg:col-span-2">
-            <SalesSummary title="Ringkasan Penjualan" description="Ringkasan penjualan berdasarkan filter yang dipilih." totalSalesAmount={totalSalesAmount} totalAdminFee={totalAdminFee} initialBalance={initialBalance} onSetInitialBalance={setInitialBalance} />
+            <SalesSummary 
+              title="Ringkasan Penjualan" 
+              description="Ringkasan penjualan berdasarkan filter yang dipilih." 
+              totalSalesAmount={filteredSales?.reduce((sum, sale) => sum + sale.amount, 0) || 0} 
+              totalAdminFee={filteredSales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0} 
+              initialBalance={initialBalance} 
+              onSetInitialBalance={setInitialBalance} 
+            />
           </div>
         </div>
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h2 className="text-2xl font-bold">Laporan Penjualan</h2>
-            <div className="w-full md:w-auto md:max-w-sm">
-              <Input placeholder="Cari nama atau detail tujuan..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            </div>
-          </div>
-          <ReportFilters onFilterChange={(mode, value) => setFilter({ mode, value })} onClearFilters={() => { setFilter({ mode: "all" }); setCategoryFilter(""); }} onCategoryChange={setCategoryFilter} categories={uniqueCategories} />
-        </div>
-        <div className="w-full">
-          <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} onDeleteSale={handleDeleteSale} onExportCSV={handleExportCSV} />
-        </div>
-        <div className="print:hidden"><SalesChart sales={sales || []} /></div>
       </main>
       <footer className="mt-12 print:hidden"><MadeWithDyad /></footer>
     </div>
