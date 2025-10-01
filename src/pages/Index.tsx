@@ -184,7 +184,7 @@ const Index = () => {
   return (
     <div className="container mx-auto p-4 md:p-6">
       <header className="text-center mb-8 relative print:hidden">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+        <h1 className="text-4xl font-bold tracking-tight md:text-5xl bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
           Catatan Penjualan Harian
         </h1>
         <p className="text-muted-foreground mt-2">

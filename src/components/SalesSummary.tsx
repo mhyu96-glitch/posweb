@@ -83,10 +83,10 @@ export const SalesSummary = ({
               Rp {totalAdminFee.toLocaleString("id-ID")}
             </span>
           </div>
-          <div className="flex justify-between font-semibold text-green-600">
+          <div className="flex justify-between font-bold text-green-600">
             <span>Keuntungan Penjualan:</span>
             <span>
-              Rp {totalAdminFee.toLocaleString("id-ID")}
+              + Rp {totalAdminFee.toLocaleString("id-ID")}
             </span>
           </div>
           <div className="flex justify-between pt-2 border-t">
@@ -100,7 +100,7 @@ export const SalesSummary = ({
       <CardFooter>
         <div className="flex justify-between w-full text-lg font-bold">
           <span>Saldo Akhir:</span>
-          <span>Rp {finalBalance.toLocaleString("id-ID")}</span>
+          <span className="text-blue-700">Rp {finalBalance.toLocaleString("id-ID")}</span>
         </div>
       </CardFooter>
     </Card>

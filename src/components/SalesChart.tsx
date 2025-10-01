@@ -58,8 +58,8 @@ export const SalesChart = ({ sales }: SalesChartProps) => {
               cursor={{ fill: "hsl(var(--muted))" }}
             />
             <Legend />
-            <Bar dataKey="Penjualan" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Biaya Admin" fill="hsl(var(--secondary-foreground))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Penjualan" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Biaya Admin" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

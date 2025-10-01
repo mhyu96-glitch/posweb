@@ -74,7 +74,7 @@ export const SalesHistoryTable = ({
       <CardContent>
         <div className="border rounded-md">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Waktu Transaksi</TableHead>
                 <TableHead>Nama Pelanggan</TableHead>
@@ -105,7 +105,7 @@ export const SalesHistoryTable = ({
                       <TableCell className="text-center">
                         {adminFee.toLocaleString("id-ID")}
                       </TableCell>
-                      <TableCell className="text-center font-medium">
+                      <TableCell className="text-center font-bold text-primary">
                         {total.toLocaleString("id-ID")}
                       </TableCell>
                       <TableCell className="text-right print:hidden">
