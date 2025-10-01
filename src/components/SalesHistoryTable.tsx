@@ -79,9 +79,9 @@ export const SalesHistoryTable = ({
                 <TableHead>Waktu Transaksi</TableHead>
                 <TableHead>Nama Pelanggan</TableHead>
                 <TableHead>Nomor HP</TableHead>
-                <TableHead className="text-right">Nominal (Rp)</TableHead>
-                <TableHead className="text-right">Admin (Rp)</TableHead>
-                <TableHead className="text-right">Total (Rp)</TableHead>
+                <TableHead className="text-center">Nominal (Rp)</TableHead>
+                <TableHead className="text-center">Admin (Rp)</TableHead>
+                <TableHead className="text-center">Total (Rp)</TableHead>
                 <TableHead className="text-right print:hidden">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -99,13 +99,13 @@ export const SalesHistoryTable = ({
                       </TableCell>
                       <TableCell>{sale.customer_name || "-"}</TableCell>
                       <TableCell>{sale.phone}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         {sale.amount.toLocaleString("id-ID")}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         {adminFee.toLocaleString("id-ID")}
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-center font-medium">
                         {total.toLocaleString("id-ID")}
                       </TableCell>
                       <TableCell className="text-right print:hidden">
