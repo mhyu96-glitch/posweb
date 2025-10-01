@@ -146,6 +146,9 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
                     <SelectItem value="Paket Data">Paket Data</SelectItem>
                     <SelectItem value="Token Listrik">Token Listrik</SelectItem>
                     <SelectItem value="Transfer Bank">Transfer Bank</SelectItem>
+                    <SelectItem value="Dana">Dana</SelectItem>
+                    <SelectItem value="Gopay">Gopay</SelectItem>
+                    <SelectItem value="Ovo">Ovo</SelectItem>
                     <SelectItem value="Lainnya">Lainnya</SelectItem>
                   </SelectContent>
                 </Select>
