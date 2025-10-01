@@ -30,20 +30,30 @@ export const SalesSummary = ({
   initialBalance,
   onSetInitialBalance,
 }: SalesSummaryProps) => {
-  const [balanceInput, setBalanceInput] = useState(initialBalance.toString());
+  const [balanceInput, setBalanceInput] = useState(
+    new Intl.NumberFormat("id-ID").format(initialBalance)
+  );
 
   useEffect(() => {
-    setBalanceInput(initialBalance.toString());
+    setBalanceInput(new Intl.NumberFormat("id-ID").format(initialBalance));
   }, [initialBalance]);
 
   const totalRevenue = totalSalesAmount + totalAdminFee;
   const finalBalance = initialBalance - totalRevenue;
 
-  const handleSetBalance = () => {
-    const numericBalance = parseFloat(balanceInput);
-    if (!isNaN(numericBalance) && numericBalance >= 0) {
-      onSetInitialBalance(numericBalance);
+  const handleBalanceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^\d]/g, "");
+    if (rawValue === "") {
+      setBalanceInput("");
+      return;
     }
+    const formattedValue = new Intl.NumberFormat("id-ID").format(Number(rawValue));
+    setBalanceInput(formattedValue);
+  };
+
+  const handleSetBalance = () => {
+    const numericBalance = parseFloat(balanceInput.replace(/\./g, ""));
+    onSetInitialBalance(isNaN(numericBalance) ? 0 : numericBalance);
   };
 
   return (
@@ -57,10 +67,11 @@ export const SalesSummary = ({
           <Label htmlFor="initial-balance" className="flex-shrink-0">Saldo Awal (Rp)</Label>
           <Input
             id="initial-balance"
-            type="number"
+            type="text"
+            inputMode="numeric"
             placeholder="0"
             value={balanceInput}
-            onChange={(e) => setBalanceInput(e.target.value)}
+            onChange={handleBalanceInputChange}
           />
           <Button onClick={handleSetBalance}>Atur</Button>
         </div>
