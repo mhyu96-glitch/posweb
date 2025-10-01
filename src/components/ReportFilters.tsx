@@ -78,7 +78,7 @@ export const ReportFilters = ({ onFilterChange, onClearFilters }: ReportFiltersP
     setActiveTab(value);
     if (value === "all") {
       onClearFilters();
-    } else if (value === "daily" && date) {
+    } else if (value === "daily") {
       onFilterChange("daily", { date });
     } else if (value === "monthly") {
       onFilterChange("monthly", { month, year });

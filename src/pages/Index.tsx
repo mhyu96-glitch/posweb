@@ -56,7 +56,9 @@ const Index = () => {
   const filteredSales = useMemo(() => {
     if (!sales) return [];
     const { mode, value } = filter;
-    if (mode === "daily" && value?.date) {
+
+    if (mode === "daily") {
+      if (!value?.date) return [];
       return sales.filter(sale => isSameDay(sale.createdAt, value.date!));
     }
     if (mode === "monthly" && value?.month && value?.year) {
