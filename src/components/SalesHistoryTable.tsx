@@ -24,7 +24,18 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Printer } from "lucide-react";
+import { Printer, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export interface Sale {
   id: string | number;
@@ -38,6 +49,7 @@ export interface Sale {
 interface SalesHistoryTableProps {
   sales: Sale[];
   onPrintReceipt: (sale: Sale) => void;
+  onDeleteSale: (saleId: string | number) => void;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -45,6 +57,7 @@ const ITEMS_PER_PAGE = 20;
 export const SalesHistoryTable = ({
   sales,
   onPrintReceipt,
+  onDeleteSale,
 }: SalesHistoryTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -109,14 +122,47 @@ export const SalesHistoryTable = ({
                         {total.toLocaleString("id-ID")}
                       </TableCell>
                       <TableCell className="text-right print:hidden">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => onPrintReceipt(sale)}
-                          title="Cetak Struk"
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => onPrintReceipt(sale)}
+                            title="Cetak Struk"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                title="Hapus Transaksi"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Apakah Anda yakin?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tindakan ini tidak dapat dibatalkan. Transaksi
+                                  ini akan dihapus secara permanen dari
+                                  database.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => onDeleteSale(sale.id)}
+                                >
+                                  Hapus
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

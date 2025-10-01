@@ -116,6 +116,23 @@ const Index = () => {
     }
   };
 
+  const handleDeleteSale = async (saleId: string | number) => {
+    try {
+      const { error } = await supabase
+        .from("sales")
+        .delete()
+        .match({ id: saleId });
+
+      if (error) throw error;
+
+      showSuccess("Transaksi berhasil dihapus!");
+      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id] });
+    } catch (error) {
+      showError("Gagal menghapus transaksi.");
+      console.error("Error deleting sale:", error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     queryClient.clear();
@@ -233,7 +250,11 @@ const Index = () => {
           {isSalesLoading ? (
             <Skeleton className="h-96 w-full" />
           ) : (
-            <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} />
+            <SalesHistoryTable
+              sales={filteredSales || []}
+              onPrintReceipt={handlePrintReceipt}
+              onDeleteSale={handleDeleteSale}
+            />
           )}
         </div>
 
