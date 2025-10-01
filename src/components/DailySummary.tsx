@@ -81,6 +81,12 @@ export const DailySummary = ({
               Rp {totalAdminFee.toLocaleString("id-ID")}
             </span>
           </div>
+          <div className="flex justify-between font-semibold text-green-600">
+            <span>Keuntungan Penjualan:</span>
+            <span>
+              Rp {totalAdminFee.toLocaleString("id-ID")}
+            </span>
+          </div>
           <div className="flex justify-between pt-2 border-t">
             <span>Total Pemasukan Hari Ini:</span>
             <span className="font-medium text-red-600">
