@@ -61,6 +61,21 @@ export const SalesEntryForm = ({
   const [category, setCategory] = useState("");
   const [open, setOpen] = useState(false);
 
+  const handleNumericInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    const rawValue = e.target.value.replace(/\D/g, "");
+    if (rawValue === "") {
+      setter("");
+      return;
+    }
+    const formattedValue = new Intl.NumberFormat("id-ID").format(
+      Number(rawValue)
+    );
+    setter(formattedValue);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || !amount || !category) {
@@ -68,13 +83,13 @@ export const SalesEntryForm = ({
       return;
     }
 
-    const numericAmount = parseFloat(amount);
+    const numericAmount = parseFloat(amount.replace(/\./g, ""));
     if (isNaN(numericAmount) || numericAmount <= 0) {
       showError("Nominal harus berupa angka positif.");
       return;
     }
     
-    const numericAdminFee = parseFloat(adminFee) || 0;
+    const numericAdminFee = parseFloat(adminFee.replace(/\./g, "")) || 0;
      if (isNaN(numericAdminFee) || numericAdminFee < 0) {
       showError("Biaya admin harus berupa angka positif.");
       return;
@@ -179,20 +194,22 @@ export const SalesEntryForm = ({
             <Label htmlFor="amount">Nominal Penjualan (Rp)</Label>
             <Input
               id="amount"
-              type="number"
-              placeholder="Contoh: 50000"
+              type="text"
+              inputMode="numeric"
+              placeholder="Contoh: 50.000"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => handleNumericInputChange(e, setAmount)}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="admin-fee">Biaya Admin (Rp)</Label>
             <Input
               id="admin-fee"
-              type="number"
-              placeholder="Contoh: 2500"
+              type="text"
+              inputMode="numeric"
+              placeholder="Contoh: 2.500"
               value={adminFee}
-              onChange={(e) => setAdminFee(e.target.value)}
+              onChange={(e) => handleNumericInputChange(e, setAdminFee)}
             />
           </div>
           <Button type="submit" className="w-full">
