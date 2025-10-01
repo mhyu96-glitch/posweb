@@ -9,6 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 
 export interface Sale {
   id: string | number;
@@ -24,10 +26,23 @@ interface SalesHistoryTableProps {
 }
 
 export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Riwayat Penjualan</CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePrint}
+          className="print:hidden"
+        >
+          <Printer className="mr-2 h-4 w-4" />
+          Cetak
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="border rounded-md">
@@ -50,7 +65,9 @@ export const SalesHistoryTable = ({ sales }: SalesHistoryTableProps) => {
                   return (
                     <TableRow key={sale.id}>
                       <TableCell>
-                        {sale.createdAt.toLocaleString("id-ID", { hour12: false })}
+                        {sale.createdAt.toLocaleString("id-ID", {
+                          hour12: false,
+                        })}
                       </TableCell>
                       <TableCell>{sale.customer_name || "-"}</TableCell>
                       <TableCell>{sale.phone}</TableCell>

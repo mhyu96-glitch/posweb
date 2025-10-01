@@ -109,7 +109,7 @@ const Index = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6">
-      <header className="text-center mb-8 relative">
+      <header className="text-center mb-8 relative print:hidden">
         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
           Catatan Penjualan Harian
         </h1>
@@ -122,7 +122,7 @@ const Index = () => {
       </header>
 
       <main className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
           <div className="lg:col-span-1">
             <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
           </div>
@@ -145,7 +145,7 @@ const Index = () => {
         </div>
       </main>
 
-      <footer className="mt-12">
+      <footer className="mt-12 print:hidden">
         <MadeWithDyad />
       </footer>
     </div>
