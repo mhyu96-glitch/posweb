@@ -16,7 +16,7 @@ import { showError } from "@/utils/toast";
 const Login = () => {
   const navigate = useNavigate();
   const { startShift, activeShift } = useShift();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [startingBalance, setStartingBalance] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +52,9 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // Construct the internal email from the username
+      const email = `${username.toLowerCase()}@kasir.local`;
+      
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
 
@@ -59,7 +62,7 @@ const Login = () => {
       await startShift(balance);
       navigate("/");
     } catch (error: any) {
-      showError(error.message || "Gagal memulai shift. Periksa kembali email dan password Anda.");
+      showError(error.message || "Gagal memulai shift. Periksa kembali username dan password Anda.");
       supabase.auth.signOut(); // Ensure user is logged out on failure
     } finally {
       setIsLoading(false);
@@ -91,8 +94,8 @@ const Login = () => {
             <CardContent>
               <form onSubmit={handleCashierLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="cashier-email">Email</Label>
-                  <Input id="cashier-email" type="email" placeholder="kasir@email.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Label htmlFor="cashier-username">Username</Label>
+                  <Input id="cashier-username" type="text" placeholder="kasir01" required value={username} onChange={(e) => setUsername(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cashier-password">Password</Label>
