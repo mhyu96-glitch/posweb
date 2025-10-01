@@ -52,8 +52,10 @@ export const SalesSummary = ({
             <span>Rp {totalSalesAmount.toLocaleString("id-ID")}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Total Biaya Admin</span>
-            <span>Rp {totalAdminFee.toLocaleString("id-ID")}</span>
+            <span className="text-muted-foreground">Keuntungan (Biaya Admin)</span>
+            <span className="text-green-600 font-medium">
+              + Rp {totalAdminFee.toLocaleString("id-ID")}
+            </span>
           </div>
           <div className="flex justify-between font-bold text-lg">
             <span>Total Pemasukan</span>
