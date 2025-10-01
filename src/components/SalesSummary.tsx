@@ -1,14 +1,17 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CurrencyInput } from "./CurrencyInput";
 
 interface SalesSummaryProps {
   title: string;
@@ -27,46 +30,79 @@ export const SalesSummary = ({
   initialBalance,
   onSetInitialBalance,
 }: SalesSummaryProps) => {
+  const [balanceInput, setBalanceInput] = useState(initialBalance.toString());
+
+  useEffect(() => {
+    setBalanceInput(initialBalance.toString());
+  }, [initialBalance]);
+
   const totalRevenue = totalSalesAmount + totalAdminFee;
-  const finalBalance = initialBalance + totalRevenue;
+  const finalBalance = initialBalance - totalRevenue;
+
+  const handleSetBalance = () => {
+    const numericBalance = parseFloat(balanceInput);
+    if (!isNaN(numericBalance) && numericBalance >= 0) {
+      onSetInitialBalance(numericBalance);
+    }
+  };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="initial-balance">Saldo Awal</Label>
-          <CurrencyInput
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="initial-balance" className="flex-shrink-0">Saldo Awal (Rp)</Label>
+          <Input
             id="initial-balance"
-            value={initialBalance}
-            onValueChange={(value) => onSetInitialBalance(value || 0)}
-            placeholder="Masukkan saldo awal kas"
+            type="number"
+            placeholder="0"
+            value={balanceInput}
+            onChange={(e) => setBalanceInput(e.target.value)}
           />
+          <Button onClick={handleSetBalance}>Atur</Button>
         </div>
-        <div className="border-t pt-4 space-y-2">
+        <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Total Penjualan</span>
-            <span>Rp {totalSalesAmount.toLocaleString("id-ID")}</span>
+            <span>Saldo Awal:</span>
+            <span className="font-medium">
+              Rp {initialBalance.toLocaleString("id-ID")}
+            </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Keuntungan (Biaya Admin)</span>
-            <span className="text-green-600 font-medium">
+            <span>Total Penjualan:</span>
+            <span className="font-medium">
+              Rp {totalSalesAmount.toLocaleString("id-ID")}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Total Biaya Admin:</span>
+            <span className="font-medium">
+              Rp {totalAdminFee.toLocaleString("id-ID")}
+            </span>
+          </div>
+          <div className="flex justify-between font-bold text-green-600">
+            <span>Keuntungan Penjualan:</span>
+            <span>
               + Rp {totalAdminFee.toLocaleString("id-ID")}
             </span>
           </div>
-          <div className="flex justify-between font-bold text-lg">
-            <span>Total Pemasukan</span>
-            <span>Rp {totalRevenue.toLocaleString("id-ID")}</span>
-          </div>
-          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
-            <span>Saldo Akhir</span>
-            <span>Rp {finalBalance.toLocaleString("id-ID")}</span>
+          <div className="flex justify-between pt-2 border-t">
+            <span>Total Pemasukan Periode Ini:</span>
+            <span className="font-medium text-red-600">
+              - Rp {totalRevenue.toLocaleString("id-ID")}
+            </span>
           </div>
         </div>
       </CardContent>
+      <CardFooter>
+        <div className="flex justify-between w-full text-lg font-bold">
+          <span>Saldo Akhir:</span>
+          <span className="text-blue-700">Rp {finalBalance.toLocaleString("id-ID")}</span>
+        </div>
+      </CardFooter>
     </Card>
   );
 };

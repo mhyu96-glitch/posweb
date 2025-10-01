@@ -1,24 +1,16 @@
-"use client";
-
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for an active session on initial load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate('/');
-      }
-    });
-
-    // Listen for auth state changes (e.g., after logging in)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         navigate("/");
       }
@@ -28,39 +20,14 @@ const Login = () => {
   }, [navigate]);
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-center text-gray-900">
-          Login ke Dasbor Penjualan
-        </h2>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center">Selamat Datang</h1>
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
           providers={[]}
           theme="light"
-          localization={{
-            variables: {
-              sign_in: {
-                email_label: "Alamat Email",
-                password_label: "Kata Sandi",
-                button_label: "Masuk",
-                social_provider_text: "Masuk dengan {{provider}}",
-                link_text: "Sudah punya akun? Masuk",
-              },
-              sign_up: {
-                email_label: "Alamat Email",
-                password_label: "Kata Sandi",
-                button_label: "Daftar",
-                social_provider_text: "Daftar dengan {{provider}}",
-                link_text: "Belum punya akun? Daftar",
-              },
-              forgotten_password: {
-                email_label: "Alamat Email",
-                button_label: "Kirim instruksi reset",
-                link_text: "Lupa kata sandi?",
-              },
-            },
-          }}
         />
       </div>
     </div>

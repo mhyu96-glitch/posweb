@@ -8,7 +8,6 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Products from "./pages/Products";
-import Settings from "./pages/Settings";
 import MainLayout from "./components/MainLayout";
 
 const queryClient = new QueryClient();
@@ -24,7 +23,6 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/products" element={<Products />} />
-            <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />

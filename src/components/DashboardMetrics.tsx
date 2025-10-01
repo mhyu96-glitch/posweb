@@ -1,98 +1,83 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
+import { isToday } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DollarSign, ShoppingCart, Tag } from "lucide-react";
 import { Sale } from "./SalesHistoryTable";
-import {
-  startOfToday,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  isWithinInterval,
-} from "date-fns";
 
 interface DashboardMetricsProps {
   sales: Sale[];
 }
 
-const calculateMetrics = (sales: Sale[]) => {
-  const totalSales = sales.reduce((sum, sale) => sum + sale.amount, 0);
-  const totalTransactions = sales.length;
-  const averageTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
-  return { totalSales, totalTransactions, averageTransaction };
-};
-
 export const DashboardMetrics = ({ sales }: DashboardMetricsProps) => {
-  const today = startOfToday();
-  const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
+  const metrics = useMemo(() => {
+    const todaySales = sales.filter(sale => isToday(sale.createdAt));
 
-  const dailySales = sales.filter((sale) =>
-    isWithinInterval(sale.createdAt, { start: today, end: new Date() })
-  );
-  const weeklySales = sales.filter((sale) =>
-    isWithinInterval(sale.createdAt, { start: weekStart, end: weekEnd })
-  );
-  const monthlySales = sales.filter((sale) =>
-    isWithinInterval(sale.createdAt, { start: monthStart, end: monthEnd })
-  );
+    const totalTodayRevenue = todaySales.reduce((sum, sale) => sum + sale.amount + (sale.admin_fee || 0), 0);
+    const totalTodayTransactions = todaySales.length;
 
-  const dailyMetrics = calculateMetrics(dailySales);
-  const weeklyMetrics = calculateMetrics(weeklySales);
-  const monthlyMetrics = calculateMetrics(monthlySales);
+    const categoryCounts = todaySales.reduce((acc, sale) => {
+      if (sale.category) {
+        acc[sale.category] = (acc[sale.category] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
 
-  const MetricCard = ({ title, value, description }: { title: string; value: string; description: string }) => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  );
+    const popularCategory = Object.keys(categoryCounts).reduce((a, b) =>
+      categoryCounts[a] > categoryCounts[b] ? a : b,
+      "-"
+    );
 
-  const MetricsTab = ({ metrics }: { metrics: ReturnType<typeof calculateMetrics> }) => (
-    <div className="grid gap-4 md:grid-cols-3">
-      <MetricCard
-        title="Total Penjualan"
-        value={`Rp ${metrics.totalSales.toLocaleString("id-ID")}`}
-        description="Total nominal dari semua transaksi"
-      />
-      <MetricCard
-        title="Jumlah Transaksi"
-        value={metrics.totalTransactions.toString()}
-        description="Total jumlah transaksi yang tercatat"
-      />
-      <MetricCard
-        title="Rata-rata Transaksi"
-        value={`Rp ${Math.round(metrics.averageTransaction).toLocaleString("id-ID")}`}
-        description="Rata-rata nominal per transaksi"
-      />
-    </div>
-  );
+    return {
+      totalTodayRevenue,
+      totalTodayTransactions,
+      popularCategory,
+    };
+  }, [sales]);
 
   return (
-    <Tabs defaultValue="today" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="today">Hari Ini</TabsTrigger>
-        <TabsTrigger value="week">Minggu Ini</TabsTrigger>
-        <TabsTrigger value="month">Bulan Ini</TabsTrigger>
-      </TabsList>
-      <TabsContent value="today">
-        <MetricsTab metrics={dailyMetrics} />
-      </TabsContent>
-      <TabsContent value="week">
-        <MetricsTab metrics={weeklyMetrics} />
-      </TabsContent>
-      <TabsContent value="month">
-        <MetricsTab metrics={monthlyMetrics} />
-      </TabsContent>
-    </Tabs>
+    <div className="grid gap-4 md:grid-cols-3">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Penjualan Hari Ini</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            Rp {metrics.totalTodayRevenue.toLocaleString("id-ID")}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Total pendapatan termasuk biaya admin
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Transaksi Hari Ini</CardTitle>
+          <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {metrics.totalTodayTransactions}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Jumlah transaksi yang tercatat
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Kategori Populer Hari Ini</CardTitle>
+          <Tag className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{metrics.popularCategory}</div>
+          <p className="text-xs text-muted-foreground">
+            Kategori yang paling sering digunakan
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

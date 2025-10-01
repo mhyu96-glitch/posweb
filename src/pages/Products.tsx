@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -23,15 +15,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -40,12 +50,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { showError, showSuccess } from "@/utils/toast";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { showError, showSuccess } from "@/utils/toast";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 
 const productSchema = z.object({
-  name: z.string().min(1, "Nama produk tidak boleh kosong."),
+  name: z.string().min(1, "Nama produk harus diisi."),
   price: z.coerce.number().min(0, "Harga harus angka positif."),
 });
 
@@ -55,7 +66,6 @@ interface Product {
   id: string;
   name: string;
   price: number;
-  user_id: string;
 }
 
 const Products = () => {
@@ -63,209 +73,203 @@ const Products = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const { data: user } = useQuery({
-    queryKey: ["user"],
-    queryFn: async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      return data.user;
-    },
+  const { data: session } = useQuery({
+    queryKey: ["session"],
+    queryFn: async () => (await supabase.auth.getSession()).data.session,
   });
 
   const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ["products", user?.id],
+    queryKey: ["products", session?.user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from("products")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .select("id, name, price")
+        .eq("user_id", session.user.id)
+        .order("name", { ascending: true });
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!session?.user?.id,
   });
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: "",
-      price: 0,
-    },
+    defaultValues: { name: "", price: 0 },
   });
 
-  useEffect(() => {
-    if (editingProduct) {
-      form.reset(editingProduct);
-    } else {
-      form.reset({ name: "", price: 0 });
-    }
-  }, [editingProduct, form]);
+  const handleDialogOpen = (product: Product | null = null) => {
+    setEditingProduct(product);
+    form.reset(product ? { name: product.name, price: product.price } : { name: "", price: 0 });
+    setIsDialogOpen(true);
+  };
 
   const onSubmit = async (values: ProductFormValues) => {
-    if (!user?.id) {
-      showError("Anda harus login untuk mengelola produk.");
-      return;
-    }
+    if (!session?.user?.id) return;
+
     try {
-      const productData = {
-        user_id: user.id,
-        name: values.name,
-        price: values.price,
-      };
-
-      const { error } = await supabase
-        .from("products")
-        .upsert(editingProduct ? { ...productData, id: editingProduct.id } : productData);
-
-      if (error) throw error;
-      showSuccess(editingProduct ? "Produk berhasil diperbarui!" : "Produk berhasil ditambahkan!");
-      queryClient.invalidateQueries({ queryKey: ["products", user.id] });
+      if (editingProduct) {
+        // Update
+        const { error } = await supabase
+          .from("products")
+          .update({ ...values })
+          .eq("id", editingProduct.id);
+        if (error) throw error;
+        showSuccess("Produk berhasil diperbarui!");
+      } else {
+        // Create
+        const { error } = await supabase
+          .from("products")
+          .insert([{ ...values, user_id: session.user.id }]);
+        if (error) throw error;
+        showSuccess("Produk berhasil ditambahkan!");
+      }
+      queryClient.invalidateQueries({ queryKey: ["products", session.user.id] });
       setIsDialogOpen(false);
-      setEditingProduct(null);
     } catch (error) {
-      showError("Gagal menyimpan produk.");
-      console.error("Error saving product:", error);
+      showError(`Gagal menyimpan produk.`);
     }
   };
 
   const handleDelete = async (productId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus produk ini?")) return;
     try {
-      const { error } = await supabase.from("products").delete().match({ id: productId });
+      const { error } = await supabase.from("products").delete().eq("id", productId);
       if (error) throw error;
-      showSuccess("Produk berhasil dihapus!");
-      queryClient.invalidateQueries({ queryKey: ["products", user.id] });
+      showSuccess("Produk berhasil dihapus.");
+      queryClient.invalidateQueries({ queryKey: ["products", session.user.id] });
     } catch (error) {
       showError("Gagal menghapus produk.");
     }
   };
 
-  const openEditDialog = (product: Product) => {
-    setEditingProduct(product);
-    setIsDialogOpen(true);
-  };
-
-  const openNewDialog = () => {
-    setEditingProduct(null);
-    form.reset({ name: "", price: 0 });
-    setIsDialogOpen(true);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-4 md:p-6">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-1/4" />
-            <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-10 w-full mb-4" />
-            <Skeleton className="h-40 w-full" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4 md:p-6">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Produk Saya</CardTitle>
-              <CardDescription>Kelola daftar produk Anda di sini.</CardDescription>
-            </div>
-            <Button onClick={openNewDialog}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Tambah Produk
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Produk</TableHead>
-                <TableHead>Harga</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products && products.length > 0 ? (
-                products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>Rp {product.price.toLocaleString("id-ID")}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(product)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center">
-                    Anda belum memiliki produk.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <main className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Manajemen Produk</h1>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => handleDialogOpen()}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Tambah Produk
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>{editingProduct ? "Edit Produk" : "Tambah Produk Baru"}</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nama Produk</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Contoh: Transfer BNI" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Harga (Rp)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="Contoh: 50000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button type="button" variant="secondary">Batal</Button>
+                    </DialogClose>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>Simpan</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{editingProduct ? "Edit Produk" : "Tambah Produk Baru"}</DialogTitle>
-            <DialogDescription>
-              Isi detail produk di bawah ini. Klik simpan jika sudah selesai.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nama Produk</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Contoh: Kopi Susu" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Harga</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="Contoh: 18000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+        <Card>
+          <CardHeader>
+            <CardTitle>Daftar Produk</CardTitle>
+            <CardDescription>Daftar semua produk atau layanan yang Anda tawarkan.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Produk</TableHead>
+                    <TableHead className="text-right">Harga (Rp)</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : products && products.length > 0 ? (
+                    products.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell className="text-right">{product.price.toLocaleString("id-ID")}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" size="icon" onClick={() => handleDialogOpen(product)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tindakan ini akan menghapus produk secara permanen.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(product.id)}>
+                                    Hapus
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center">
+                        Belum ada produk. Silakan tambahkan produk baru.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 };

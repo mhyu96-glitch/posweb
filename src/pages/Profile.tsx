@@ -1,20 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -23,47 +14,53 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 
-const profileSchema = z.object({
-  first_name: z.string().optional(),
+const profileFormSchema = z.object({
+  first_name: z.string().min(1, "Nama depan harus diisi."),
   last_name: z.string().optional(),
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const Profile = () => {
   const queryClient = useQueryClient();
 
-  const { data: user } = useQuery({
-    queryKey: ["user"],
+  const { data: session, isLoading: isSessionLoading } = useQuery({
+    queryKey: ["session"],
     queryFn: async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      return data.user;
+      const { data } = await supabase.auth.getSession();
+      return data.session;
     },
   });
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["profile", user?.id],
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ["profile", session?.user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!session?.user?.id) return null;
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
-        .eq("id", user.id)
+        .select("first_name, last_name")
+        .eq("id", session.user.id)
         .single();
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
+      if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!session?.user?.id,
   });
 
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(profileFormSchema),
     defaultValues: {
       first_name: "",
       last_name: "",
@@ -79,41 +76,48 @@ const Profile = () => {
     }
   }, [profile, form]);
 
-  const onSubmit = async (values: ProfileFormValues) => {
-    if (!user?.id) {
-      showError("Anda harus login untuk memperbarui profil.");
+  const onSubmit = async (data: ProfileFormValues) => {
+    if (!session?.user?.id) {
+      showError("Sesi tidak ditemukan. Silakan login kembali.");
       return;
     }
     try {
       const { error } = await supabase
         .from("profiles")
         .update({
-          first_name: values.first_name,
-          last_name: values.last_name,
+          first_name: data.first_name,
+          last_name: data.last_name,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", user.id);
+        .eq("id", session.user.id);
 
       if (error) throw error;
+
       showSuccess("Profil berhasil diperbarui!");
-      queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["profile", session.user.id] });
     } catch (error) {
       showError("Gagal memperbarui profil.");
       console.error("Error updating profile:", error);
     }
   };
 
-  if (isLoading) {
+  if (isSessionLoading || isProfileLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6">
-        <Card>
+        <Card className="max-w-2xl mx-auto">
           <CardHeader>
-            <Skeleton className="h-8 w-1/4" />
-            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-2/3 mt-2" />
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-1/4" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-1/4" />
+              <Skeleton className="h-10 w-full" />
+            </div>
             <Skeleton className="h-10 w-1/4" />
           </CardContent>
         </Card>
@@ -123,11 +127,11 @@ const Profile = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6">
-      <Card>
+      <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle>Profil Pengguna</CardTitle>
           <CardDescription>
-            Perbarui informasi profil Anda di sini.
+            Perbarui informasi pribadi Anda di sini.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,7 +155,7 @@ const Profile = () => {
                 name="last_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nama Belakang</FormLabel>
+                    <FormLabel>Nama Belakang (Opsional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Masukkan nama belakang Anda" {...field} />
                     </FormControl>
@@ -160,7 +164,9 @@ const Profile = () => {
                 )}
               />
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
+                {form.formState.isSubmitting
+                  ? "Menyimpan..."
+                  : "Simpan Perubahan"}
               </Button>
             </form>
           </Form>

@@ -15,205 +15,175 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { id } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
+import { Label } from "./ui/label";
 
 interface ReportFiltersProps {
   onFilterChange: (
     mode: "all" | "daily" | "monthly" | "yearly",
     value?: { dateRange?: DateRange; month?: number; year?: number }
   ) => void;
-  onClearFilters: () => void;
   onCategoryChange: (category: string) => void;
+  onClearFilters: () => void;
   categories: string[];
 }
 
-export const ReportFilters = ({
-  onFilterChange,
-  onClearFilters,
-  onCategoryChange,
-  categories,
-}: ReportFiltersProps) => {
-  const [mode, setMode] = useState<"all" | "daily" | "monthly" | "yearly">("all");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+const months = [
+  { value: 1, label: "Januari" }, { value: 2, label: "Februari" },
+  { value: 3, label: "Maret" }, { value: 4, label: "April" },
+  { value: 5, label: "Mei" }, { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" }, { value: 8, label: "Agustus" },
+  { value: 9, label: "September" }, { value: 10, label: "Oktober" },
+  { value: 11, label: "November" }, { value: 12, label: "Desember" },
+];
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+export const ReportFilters = ({ onFilterChange, onCategoryChange, onClearFilters, categories }: ReportFiltersProps) => {
+  const [activeTab, setActiveTab] = useState("all");
+  const [date, setDate] = useState<DateRange | undefined>();
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [category, setCategory] = useState("");
+  const [year, setYear] = useState<number>(currentYear);
 
-  const handleModeChange = (newMode: "all" | "daily" | "monthly" | "yearly") => {
-    setMode(newMode);
-    if (newMode === "all") {
-      onFilterChange("all");
+  const handleDateSelect = (selectedRange: DateRange | undefined) => {
+    setDate(selectedRange);
+    if (selectedRange) {
+      onFilterChange("daily", { dateRange: selectedRange });
+    }
+  };
+
+  const handleMonthYearChange = (type: "month" | "year", value: string) => {
+    const numValue = parseInt(value, 10);
+    let newMonth = month;
+    let newYear = year;
+
+    if (type === "month") {
+      newMonth = numValue;
+      setMonth(numValue);
     } else {
-      applyFilters(newMode, { dateRange, month, year });
+      newYear = numValue;
+      setYear(numValue);
     }
+    onFilterChange("monthly", { month: newMonth, year: newYear });
   };
-
-  const applyFilters = (
-    currentMode: "all" | "daily" | "monthly" | "yearly",
-    values: { dateRange?: DateRange; month?: number; year?: number }
-  ) => {
-    if (currentMode === "daily") {
-      onFilterChange("daily", { dateRange: values.dateRange });
-    } else if (currentMode === "monthly") {
-      onFilterChange("monthly", { month: values.month, year: values.year });
-    } else if (currentMode === "yearly") {
-      onFilterChange("yearly", { year: values.year });
-    }
-  };
-
-  const handleDateRangeSelect = (range: DateRange | undefined) => {
-    setDateRange(range);
-    applyFilters(mode, { dateRange: range, month, year });
-  };
-
-  const handleMonthChange = (value: string) => {
-    const newMonth = parseInt(value);
-    setMonth(newMonth);
-    applyFilters(mode, { dateRange, month: newMonth, year });
-  };
-
+  
   const handleYearChange = (value: string) => {
-    const newYear = parseInt(value);
-    setYear(newYear);
-    applyFilters(mode, { dateRange, month, year: newYear });
+    const numValue = parseInt(value, 10);
+    setYear(numValue);
+    onFilterChange("yearly", { year: numValue });
   };
 
-  const handleCategoryChange = (value: string) => {
-    const newCategory = value === "all" ? "" : value;
-    setCategory(newCategory);
-    onCategoryChange(newCategory);
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "all") {
+      onClearFilters();
+    } else if (value === "daily") {
+      onFilterChange("daily", { dateRange: date });
+    } else if (value === "monthly") {
+      onFilterChange("monthly", { month, year });
+    } else if (value === "yearly") {
+      onFilterChange("yearly", { year });
+    }
   };
-
-  const handleClear = () => {
-    setMode("all");
-    setDateRange(undefined);
-    setMonth(new Date().getMonth() + 1);
-    setYear(new Date().getFullYear());
-    setCategory("");
-    onClearFilters();
-  };
-
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-  const months = Array.from({ length: 12 }, (_, i) => ({
-    value: i + 1,
-    label: new Date(0, i).toLocaleString("id-ID", { month: "long" }),
-  }));
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 items-center">
-      <Tabs value={mode} onValueChange={(v) => handleModeChange(v as any)}>
-        <TabsList>
+    <div className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">Semua</TabsTrigger>
           <TabsTrigger value="daily">Harian</TabsTrigger>
           <TabsTrigger value="monthly">Bulanan</TabsTrigger>
           <TabsTrigger value="yearly">Tahunan</TabsTrigger>
         </TabsList>
-      </Tabs>
-
-      {mode === "daily" && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              id="date"
-              variant={"outline"}
-              className={cn(
-                "w-[300px] justify-start text-left font-normal",
-                !dateRange && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
-                  </>
+        <TabsContent value="daily" className="mt-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={"outline"}
+                className="w-full md:w-[300px] justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "d MMM yyyy", { locale: id })} -{" "}
+                      {format(date.to, "d MMM yyyy", { locale: id })}
+                    </>
+                  ) : (
+                    format(date.from, "d MMM yyyy", { locale: id })
+                  )
                 ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Pilih rentang tanggal</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={handleDateRangeSelect}
-              numberOfMonths={2}
-            />
-          </PopoverContent>
-        </Popover>
-      )}
-
-      {mode === "monthly" && (
-        <div className="flex gap-2">
-          <Select value={month.toString()} onValueChange={handleMonthChange}>
+                  <span>Pilih rentang tanggal</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={handleDateSelect}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+        </TabsContent>
+        <TabsContent value="monthly" className="mt-4 flex gap-2">
+          <Select value={month.toString()} onValueChange={(v) => handleMonthYearChange("month", v)}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Bulan" />
+              <SelectValue placeholder="Pilih Bulan" />
             </SelectTrigger>
             <SelectContent>
               {months.map((m) => (
-                <SelectItem key={m.value} value={m.value.toString()}>
-                  {m.label}
-                </SelectItem>
+                <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Select value={year.toString()} onValueChange={handleYearChange}>
+          <Select value={year.toString()} onValueChange={(v) => handleMonthYearChange("year", v)}>
             <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Tahun" />
+              <SelectValue placeholder="Pilih Tahun" />
             </SelectTrigger>
             <SelectContent>
               {years.map((y) => (
-                <SelectItem key={y} value={y.toString()}>
-                  {y}
-                </SelectItem>
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
-      )}
-
-      {mode === "yearly" && (
-        <Select value={year.toString()} onValueChange={handleYearChange}>
-          <SelectTrigger className="w-[120px]">
-            <SelectValue placeholder="Tahun" />
+        </TabsContent>
+        <TabsContent value="yearly" className="mt-4">
+          <Select value={year.toString()} onValueChange={handleYearChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih Tahun" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </TabsContent>
+      </Tabs>
+      <div className="flex items-center gap-2">
+        <Label htmlFor="category-filter" className="flex-shrink-0">Filter Kategori:</Label>
+        <Select onValueChange={(value) => onCategoryChange(value === "all" ? "" : value)}>
+          <SelectTrigger id="category-filter" className="w-full md:w-[240px]">
+            <SelectValue placeholder="Semua Kategori" />
           </SelectTrigger>
           <SelectContent>
-            {years.map((y) => (
-              <SelectItem key={y} value={y.toString()}>
-                {y}
-              </SelectItem>
+            <SelectItem value="all">Semua Kategori</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-      )}
-
-      <Select value={category} onValueChange={handleCategoryChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Semua Kategori" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua Kategori</SelectItem>
-          {categories.map((cat) => (
-            <SelectItem key={cat} value={cat}>
-              {cat}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Button variant="outline" onClick={handleClear}>
-        Reset
-      </Button>
+      </div>
     </div>
   );
 };

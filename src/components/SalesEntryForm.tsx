@@ -1,25 +1,15 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -32,215 +22,200 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useState } from "react";
-import { CurrencyInput } from "@/components/CurrencyInput";
+import { showSuccess, showError } from "@/utils/toast";
+import { ChevronsUpDown } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
 
-const salesSchema = z.object({
-  name: z.string().optional(),
-  destination: z.string().min(1, "Tujuan tidak boleh kosong."),
-  bankName: z.string().optional(),
-  amount: z.coerce.number().min(1, "Nominal harus lebih dari 0."),
-  adminFee: z.coerce.number().min(0, "Biaya admin tidak boleh negatif.").default(0),
-  category: z.string().min(1, "Kategori tidak boleh kosong."),
-});
-
-type SalesFormValues = z.infer<typeof salesSchema>;
-
-interface SalesEntryFormProps {
-  onAddSale: (sale: SalesFormValues) => void;
-  previousCustomers: { name: string }[];
+interface Customer {
+  name: string;
 }
 
-export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormProps) => {
-  const [isBankTransfer, setIsBankTransfer] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [destinationNumber, setDestinationNumber] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [displayInfo, setDisplayInfo] = useState("");
+interface SalesEntryFormProps {
+  onAddSale: (sale: {
+    name: string;
+    destination: string;
+    bankName?: string;
+    amount: number;
+    adminFee: number;
+    category: string;
+  }) => void;
+  previousCustomers: Customer[];
+}
 
-  const form = useForm<SalesFormValues>({
-    resolver: zodResolver(salesSchema),
-    defaultValues: {
-      name: "",
-      destination: "",
-      bankName: "",
-      amount: undefined,
-      adminFee: 0,
-      category: "",
-    },
-  });
+const categories = [
+  "Transfer Antar Bank", "Transfer Beda Bank", "DANA", "Gopay", "OVO", "Tunai", "Lainnya",
+];
+const eWalletCategories = ["DANA", "Gopay", "OVO"];
+const bankCategories = ["Transfer Antar Bank", "Transfer Beda Bank"];
+
+export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormProps) => {
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [adminFee, setAdminFee] = useState("");
+  const [category, setCategory] = useState("");
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+
+  // State for destination details
+  const [destination, setDestination] = useState("");
+  const [bankName, setBankName] = useState("");
+
+  // State for modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"phone" | "bank" | null>(null);
+  const [modalInputValue, setModalInputValue] = useState("");
+  const [modalBankName, setModalBankName] = useState("");
+
+  const handleNumericInputChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    setter(e.target.value.replace(/[^\d]/g, ""));
+  };
+
+  const formatCurrency = (value: string) => {
+    if (!value) return "";
+    return new Intl.NumberFormat("id-ID").format(Number(value));
+  };
 
   const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value);
-    setIsBankTransfer(value === "Transfer Bank");
-    setIsModalOpen(true);
+    setCategory(value);
+    setDestination("");
+    setBankName("");
+
+    if (eWalletCategories.includes(value)) {
+      setModalType("phone");
+      setModalInputValue("");
+      setIsModalOpen(true);
+    } else if (bankCategories.includes(value)) {
+      setModalType("bank");
+      setModalInputValue("");
+      setModalBankName("");
+      setIsModalOpen(true);
+    }
   };
 
-  const handleModalSubmit = () => {
-    if (!destinationNumber) {
-      alert("Nomor tujuan tidak boleh kosong.");
+  const handleModalSave = () => {
+    if (modalType === "phone") {
+      setDestination(modalInputValue);
+    } else if (modalType === "bank") {
+      setDestination(modalInputValue);
+      setBankName(modalBankName);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || !category) {
+      showError("Nominal dan Kategori harus diisi.");
       return;
     }
-    form.setValue("category", selectedCategory);
-    form.setValue("destination", destinationNumber);
-    setDisplayInfo(`${selectedCategory}: ${destinationNumber}`);
-    setIsModalOpen(false);
-    setDestinationNumber("");
-  };
+    if ((eWalletCategories.includes(category) || bankCategories.includes(category)) && !destination) {
+      showError("Detail tujuan harus diisi untuk kategori ini.");
+      return;
+    }
 
-  const onSubmit = (values: SalesFormValues) => {
-    onAddSale(values);
-    form.reset({
-      name: "",
-      destination: "",
-      bankName: "",
-      amount: undefined,
-      adminFee: 0,
-      category: "",
+    onAddSale({
+      name,
+      destination,
+      bankName,
+      amount: parseFloat(amount),
+      adminFee: parseFloat(adminFee) || 0,
+      category,
     });
-    setIsBankTransfer(false);
-    setDisplayInfo("");
+    showSuccess("Penjualan berhasil dicatat!");
+
+    // Reset form
+    setName(""); setAmount(""); setAdminFee(""); setCategory(""); setDestination(""); setBankName("");
   };
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Catat Penjualan Baru</CardTitle>
-          <CardDescription>Isi detail transaksi di bawah ini.</CardDescription>
-        </CardHeader>
+      <Card className="w-full">
+        <CardHeader><CardTitle>Catat Penjualan Baru</CardTitle></CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nama Pelanggan (Opsional)</FormLabel>
-                    <FormControl>
-                      <Input list="customers" placeholder="Contoh: Budi" {...field} />
-                    </FormControl>
-                    <datalist id="customers">
-                      {previousCustomers.map((customer, index) => (
-                        <option key={index} value={customer.name} />
-                      ))}
-                    </datalist>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormItem>
-                <FormLabel>Kategori</FormLabel>
-                <Select onValueChange={handleCategoryChange} value="">
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kategori transaksi" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Pulsa">Pulsa</SelectItem>
-                    <SelectItem value="Paket Data">Paket Data</SelectItem>
-                    <SelectItem value="Token Listrik">Token Listrik</SelectItem>
-                    <SelectItem value="Transfer Bank">Transfer Bank</SelectItem>
-                    <SelectItem value="Dana">Dana</SelectItem>
-                    <SelectItem value="Gopay">Gopay</SelectItem>
-                    <SelectItem value="Ovo">Ovo</SelectItem>
-                    <SelectItem value="Lainnya">Lainnya</SelectItem>
-                  </SelectContent>
-                </Select>
-                {displayInfo && (
-                  <p className="text-sm text-muted-foreground mt-2 p-2 bg-secondary rounded-md">
-                    {displayInfo}
-                  </p>
-                )}
-                <FormMessage>{form.formState.errors.category?.message}</FormMessage>
-              </FormItem>
-
-              {isBankTransfer && (
-                <FormField
-                  control={form.control}
-                  name="bankName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nama Bank</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Contoh: BCA" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nominal</FormLabel>
-                    <FormControl>
-                      <CurrencyInput
-                        placeholder="Contoh: 50.000"
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="adminFee"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Biaya Admin</FormLabel>
-                    <FormControl>
-                      <CurrencyInput
-                        placeholder="Contoh: 2.500"
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Menyimpan..." : "Simpan Transaksi"}
-              </Button>
-            </form>
-          </Form>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nama Pelanggan (Opsional)</Label>
+              <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    {name || "Pilih atau ketik nama..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Cari atau masukkan nama baru..." value={name} onValueChange={setName} />
+                    <CommandEmpty>Nama tidak ditemukan.</CommandEmpty>
+                    <CommandGroup>
+                      {previousCustomers.map((c) => <CommandItem key={c.name} value={c.name} onSelect={(val) => { setName(val); setComboboxOpen(false); }}>{c.name}</CommandItem>)}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Kategori Penjualan</Label>
+              <Select value={category} onValueChange={handleCategoryChange}>
+                <SelectTrigger><SelectValue placeholder="Pilih kategori pembayaran" /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {destination && (
+              <div className="space-y-1 rounded-md bg-muted p-3">
+                <Label className="text-xs font-medium text-muted-foreground">Detail Tujuan</Label>
+                <p className="text-sm font-semibold">{bankName ? `${bankName.toUpperCase()} - ${destination}` : destination}</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="amount">Nominal Penjualan (Rp)</Label>
+              <Input id="amount" type="text" inputMode="numeric" placeholder="Contoh: 50000" value={formatCurrency(amount)} onChange={(e) => handleNumericInputChange(e, setAmount)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-fee">Biaya Admin (Rp)</Label>
+              <Input id="admin-fee" type="text" inputMode="numeric" placeholder="Contoh: 2500" value={formatCurrency(adminFee)} onChange={(e) => handleNumericInputChange(e, setAdminFee)} />
+            </div>
+            <Button type="submit" className="w-full">Simpan Transaksi</Button>
+          </form>
         </CardContent>
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Masukkan Detail Tujuan</DialogTitle>
-            <DialogDescription>
-              Masukkan nomor tujuan untuk kategori: <strong>{selectedCategory}</strong>
-            </DialogDescription>
+            <DialogTitle>
+              {modalType === 'phone' ? 'Masukkan Nomor Tujuan' : 'Masukkan Detail Rekening'}
+            </DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <Input
-              placeholder={isBankTransfer ? "Nomor Rekening" : "Nomor Tujuan"}
-              value={destinationNumber}
-              onChange={(e) => setDestinationNumber(e.target.value)}
-              autoFocus
-            />
+          <div className="grid gap-4 py-4">
+            {modalType === 'bank' && (
+              <div className="space-y-2">
+                <Label htmlFor="bank-name">Nama Bank</Label>
+                <Input id="bank-name" value={modalBankName} onChange={(e) => setModalBankName(e.target.value)} placeholder="Contoh: BCA" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="destination-number">
+                {modalType === 'phone' ? 'Nomor HP' : 'Nomor Rekening'}
+              </Label>
+              <Input id="destination-number" value={modalInputValue} onChange={(e) => setModalInputValue(e.target.value)} placeholder={modalType === 'phone' ? '0812...' : '123456...'} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
-            <Button onClick={handleModalSubmit}>Simpan</Button>
+            <Button onClick={handleModalSave}>Simpan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

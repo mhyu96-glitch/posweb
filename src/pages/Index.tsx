@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { SalesEntryForm } from "@/components/SalesEntryForm";
+import { SalesSummary } from "@/components/SalesSummary";
 import { SalesHistoryTable, Sale } from "@/components/SalesHistoryTable";
 import { ReportFilters } from "@/components/ReportFilters";
 import { MadeWithDyad } from "@/components/made-with-dyad";
@@ -15,27 +17,11 @@ import { SalesChart } from "@/components/SalesChart";
 import { Input } from "@/components/ui/input";
 import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileDown } from "lucide-react";
-import { SalesEntrySheet } from "@/components/SalesEntrySheet";
-
-interface Settings {
-  shop_name?: string;
-  shop_address?: string;
-  shop_phone?: string;
-}
 
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [receiptToPrint, setReceiptToPrint] = useState<{ sale: Sale; settings: Settings | null } | null>(null);
+  const [receiptToPrint, setReceiptToPrint] = useState<Sale | null>(null);
   const [filter, setFilter] = useState<{
     mode: "all" | "daily" | "monthly" | "yearly";
     value?: { dateRange?: DateRange; month?: number; year?: number };
@@ -76,20 +62,6 @@ const Index = () => {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data.map(sale => ({ ...sale, createdAt: new Date(sale.created_at) }));
-    },
-    enabled: !!session?.user?.id,
-  });
-
-  const { data: settings, isLoading: isSettingsLoading } = useQuery<Settings | null>({
-    queryKey: ["settings", session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-      const { data, error } = await supabase
-        .from("settings")
-        .select("shop_name, shop_address, shop_phone")
-        .single();
-      if (error && error.code !== "PGRST116") throw error;
-      return data;
     },
     enabled: !!session?.user?.id,
   });
@@ -174,7 +146,7 @@ const Index = () => {
     }
   };
 
-  const handlePrintReceipt = (sale: Sale) => setReceiptToPrint({ sale, settings });
+  const handlePrintReceipt = (sale: Sale) => setReceiptToPrint(sale);
 
   const handleExportCSV = () => {
     if (!filteredSales || filteredSales.length === 0) {
@@ -210,6 +182,9 @@ const Index = () => {
     return () => window.removeEventListener("afterprint", handleAfterPrint);
   }, []);
 
+  const totalSalesAmount = filteredSales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
+  const totalAdminFee = filteredSales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
+  
   const previousCustomers = useMemo(() => sales
     ? Array.from(sales.reduce((map, sale) => {
         if (sale.customer_name) map.set(sale.customer_name, { name: sale.customer_name });
@@ -217,7 +192,7 @@ const Index = () => {
       }, new Map<string, { name: string }>()).values())
     : [], [sales]);
 
-  if (isSessionLoading || isSalesLoading || isSettingsLoading) {
+  if (isSessionLoading || isSalesLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6 space-y-4">
         <Skeleton className="h-8 w-1/4" />
@@ -228,61 +203,36 @@ const Index = () => {
   }
 
   if (receiptToPrint) {
-    return <div id="receipt-print-area"><Receipt sale={receiptToPrint.sale} settings={receiptToPrint.settings} /></div>;
+    return <div id="receipt-print-area"><Receipt sale={receiptToPrint} /></div>;
   }
 
   return (
     <div className="container mx-auto p-4 md:p-6">
       <main className="space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dasbor</h1>
-            <p className="text-muted-foreground">
-              Selamat datang kembali! Berikut adalah ringkasan penjualan Anda.
-            </p>
-          </div>
-          <SalesEntrySheet
-            onAddSale={handleAddSale}
-            previousCustomers={previousCustomers}
-            filteredSales={filteredSales}
-            initialBalance={initialBalance}
-            onSetInitialBalance={setInitialBalance}
-          />
-        </div>
-
         <div className="print:hidden">
-          <DashboardMetrics sales={sales || []} />
+          {isSalesLoading ? <div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div> : <DashboardMetrics sales={sales || []} />}
         </div>
-        
-        <div className="space-y-8 print:hidden">
-          <SalesChart sales={sales || []} />
-          <Card>
-            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <CardTitle>Riwayat Transaksi</CardTitle>
-                <CardDescription>Lihat dan kelola semua transaksi Anda.</CardDescription>
-              </div>
-              <div className="flex w-full md:w-auto items-center gap-2">
-                <Input 
-                  placeholder="Cari nama atau tujuan..." 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="w-full md:w-auto"
-                />
-                <Button onClick={handleExportCSV} variant="outline" className="whitespace-nowrap">
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Ekspor
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <ReportFilters onFilterChange={(mode, value) => setFilter({ mode, value })} onClearFilters={() => { setFilter({ mode: "all" }); setCategoryFilter(""); }} onCategoryChange={setCategoryFilter} categories={uniqueCategories} />
-                <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} onDeleteSale={handleDeleteSale} />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
+          <div className="lg:col-span-1">
+            <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
+          </div>
+          <div className="lg:col-span-2">
+            <SalesSummary title="Ringkasan Penjualan" description="Ringkasan penjualan berdasarkan filter yang dipilih." totalSalesAmount={totalSalesAmount} totalAdminFee={totalAdminFee} initialBalance={initialBalance} onSetInitialBalance={setInitialBalance} />
+          </div>
         </div>
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h2 className="text-2xl font-bold">Laporan Penjualan</h2>
+            <div className="w-full md:w-auto md:max-w-sm">
+              <Input placeholder="Cari nama atau detail tujuan..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+          </div>
+          <ReportFilters onFilterChange={(mode, value) => setFilter({ mode, value })} onClearFilters={() => { setFilter({ mode: "all" }); setCategoryFilter(""); }} onCategoryChange={setCategoryFilter} categories={uniqueCategories} />
+        </div>
+        <div className="w-full">
+          {isSalesLoading ? <Skeleton className="h-96 w-full" /> : <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} onDeleteSale={handleDeleteSale} onExportCSV={handleExportCSV} />}
+        </div>
+        <div className="print:hidden"><SalesChart sales={sales || []} /></div>
       </main>
       <footer className="mt-12 print:hidden"><MadeWithDyad /></footer>
     </div>

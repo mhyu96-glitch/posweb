@@ -1,17 +1,14 @@
 import { Outlet } from "react-router-dom";
-import { Header } from "@/components/Header";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Header } from "./Header";
 
 const MainLayout = () => {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <div className="flex flex-col min-h-screen bg-background">
-        <Header />
-        <main className="flex-1">
-          <Outlet />
-        </main>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-grow">
+        <Outlet />
       </div>
-    </ThemeProvider>
+    </div>
   );
 };
 
