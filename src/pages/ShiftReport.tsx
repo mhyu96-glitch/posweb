@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,11 +56,6 @@ const ShiftReport = () => {
     await supabase.auth.signOut();
     navigate("/login");
   };
-
-  useEffect(() => {
-    // Prevent access to main app by removing session
-    supabase.auth.signOut();
-  }, []);
 
   if (isLoadingShift || isLoadingSales) {
     return (
