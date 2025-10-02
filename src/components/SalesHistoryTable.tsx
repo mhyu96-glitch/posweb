@@ -94,14 +94,14 @@ export const SalesHistoryTable = ({
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead>Waktu Transaksi</TableHead>
-                <TableHead>Nama Pelanggan</TableHead>
-                <TableHead>Detail Tujuan</TableHead>
-                <TableHead>Kategori</TableHead>
+                <TableHead className="text-center">Waktu Transaksi</TableHead>
+                <TableHead className="text-center">Nama Pelanggan</TableHead>
+                <TableHead className="text-center">Detail Tujuan</TableHead>
+                <TableHead className="text-center">Kategori</TableHead>
                 <TableHead className="text-center">Nominal (Rp)</TableHead>
                 <TableHead className="text-center">Admin (Rp)</TableHead>
                 <TableHead className="text-center">Total (Rp)</TableHead>
-                <TableHead className="text-right print:hidden">Aksi</TableHead>
+                <TableHead className="text-center print:hidden">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,15 +114,15 @@ export const SalesHistoryTable = ({
                     : sale.phone;
                   return (
                     <TableRow key={sale.id}>
-                      <TableCell>{sale.createdAt.toLocaleString("id-ID", { hour12: false })}</TableCell>
-                      <TableCell>{sale.customer_name || "-"}</TableCell>
-                      <TableCell>{destinationDetail || "-"}</TableCell>
-                      <TableCell>{sale.category || "-"}</TableCell>
+                      <TableCell className="text-center">{sale.createdAt.toLocaleString("id-ID", { hour12: false })}</TableCell>
+                      <TableCell className="text-center">{sale.customer_name || "-"}</TableCell>
+                      <TableCell className="text-center">{destinationDetail || "-"}</TableCell>
+                      <TableCell className="text-center">{sale.category || "-"}</TableCell>
                       <TableCell className="text-center">{sale.amount.toLocaleString("id-ID")}</TableCell>
                       <TableCell className="text-center">{adminFee.toLocaleString("id-ID")}</TableCell>
                       <TableCell className="text-center font-bold text-primary">{total.toLocaleString("id-ID")}</TableCell>
-                      <TableCell className="text-right print:hidden">
-                        <div className="flex items-center justify-end gap-2">
+                      <TableCell className="text-center print:hidden">
+                        <div className="flex items-center justify-center gap-2">
                           <Button variant="outline" size="icon" onClick={() => onPrintReceipt(sale)} title="Cetak Struk">
                             <Printer className="h-4 w-4" />
                           </Button>
