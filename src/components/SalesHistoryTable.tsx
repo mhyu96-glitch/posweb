@@ -46,6 +46,7 @@ export interface Sale {
   admin_fee?: number;
   category?: string;
   createdAt: Date;
+  products: { name: string } | null;
 }
 
 interface SalesHistoryTableProps {
@@ -94,13 +95,14 @@ export const SalesHistoryTable = ({
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="text-center">Waktu Transaksi</TableHead>
-                <TableHead className="text-center">Nama Pelanggan</TableHead>
-                <TableHead className="text-center">Detail Tujuan</TableHead>
-                <TableHead className="text-center">Kategori</TableHead>
-                <TableHead className="text-center">Nominal (Rp)</TableHead>
-                <TableHead className="text-center">Admin (Rp)</TableHead>
-                <TableHead className="text-center">Total (Rp)</TableHead>
+                <TableHead>Waktu</TableHead>
+                <TableHead>Produk</TableHead>
+                <TableHead>Pelanggan</TableHead>
+                <TableHead>Tujuan</TableHead>
+                <TableHead>Kategori</TableHead>
+                <TableHead className="text-right">Nominal (Rp)</TableHead>
+                <TableHead className="text-right">Admin (Rp)</TableHead>
+                <TableHead className="text-right">Total (Rp)</TableHead>
                 <TableHead className="text-center print:hidden">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -114,13 +116,14 @@ export const SalesHistoryTable = ({
                     : sale.phone;
                   return (
                     <TableRow key={sale.id}>
-                      <TableCell className="text-center">{sale.createdAt.toLocaleString("id-ID", { hour12: false })}</TableCell>
-                      <TableCell className="text-center">{sale.customer_name || "-"}</TableCell>
-                      <TableCell className="text-center">{destinationDetail || "-"}</TableCell>
-                      <TableCell className="text-center">{sale.category || "-"}</TableCell>
-                      <TableCell className="text-center">{sale.amount.toLocaleString("id-ID")}</TableCell>
-                      <TableCell className="text-center">{adminFee.toLocaleString("id-ID")}</TableCell>
-                      <TableCell className="text-center font-bold text-primary">{total.toLocaleString("id-ID")}</TableCell>
+                      <TableCell>{sale.createdAt.toLocaleString("id-ID", { hour12: false })}</TableCell>
+                      <TableCell className="font-medium">{sale.products?.name || "-"}</TableCell>
+                      <TableCell>{sale.customer_name || "-"}</TableCell>
+                      <TableCell>{destinationDetail || "-"}</TableCell>
+                      <TableCell>{sale.category || "-"}</TableCell>
+                      <TableCell className="text-right">{sale.amount.toLocaleString("id-ID")}</TableCell>
+                      <TableCell className="text-right">{adminFee.toLocaleString("id-ID")}</TableCell>
+                      <TableCell className="text-right font-bold text-primary">{total.toLocaleString("id-ID")}</TableCell>
                       <TableCell className="text-center print:hidden">
                         <div className="flex items-center justify-center gap-2">
                           <Button variant="outline" size="icon" onClick={() => onPrintReceipt(sale)} title="Cetak Struk">
@@ -149,7 +152,7 @@ export const SalesHistoryTable = ({
                   );
                 })
               ) : (
-                <TableRow><TableCell colSpan={8} className="text-center h-24">Belum ada data penjualan.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center h-24">Belum ada data penjualan.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

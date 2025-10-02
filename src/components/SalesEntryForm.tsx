@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,10 +39,17 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 
 interface Customer {
   name: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
 }
 
 interface SalesEntryFormProps {
@@ -51,8 +60,10 @@ interface SalesEntryFormProps {
     amount: number;
     adminFee: number;
     category: string;
+    productId?: string;
   }) => void;
   previousCustomers: Customer[];
+  userId: string;
 }
 
 const categories = [
@@ -61,18 +72,37 @@ const categories = [
 const eWalletCategories = ["DANA", "Gopay", "OVO"];
 const bankCategories = ["Transfer Antar Bank", "Transfer Beda Bank"];
 
-export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormProps) => {
+export const SalesEntryForm = ({ onAddSale, previousCustomers, userId }: SalesEntryFormProps) => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [adminFee, setAdminFee] = useState("");
   const [category, setCategory] = useState("");
-  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [customerComboboxOpen, setCustomerComboboxOpen] = useState(false);
+  const [productComboboxOpen, setProductComboboxOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // State for destination details
+  const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
+    queryKey: ["products", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, price")
+        .eq("user_id", userId)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  useEffect(() => {
+    if (selectedProduct) {
+      setAmount(selectedProduct.price.toString());
+    }
+  }, [selectedProduct]);
+
   const [destination, setDestination] = useState("");
   const [bankName, setBankName] = useState("");
-
-  // State for modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"phone" | "bank" | null>(null);
   const [modalInputValue, setModalInputValue] = useState("");
@@ -91,23 +121,18 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
     setCategory(value);
     setDestination("");
     setBankName("");
-
     if (eWalletCategories.includes(value)) {
       setModalType("phone");
-      setModalInputValue("");
       setIsModalOpen(true);
     } else if (bankCategories.includes(value)) {
       setModalType("bank");
-      setModalInputValue("");
-      setModalBankName("");
       setIsModalOpen(true);
     }
   };
 
   const handleModalSave = () => {
-    if (modalType === "phone") {
-      setDestination(modalInputValue);
-    } else if (modalType === "bank") {
+    if (modalType === "phone") setDestination(modalInputValue);
+    else if (modalType === "bank") {
       setDestination(modalInputValue);
       setBankName(modalBankName);
     }
@@ -116,8 +141,8 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !category) {
-      showError("Nominal dan Kategori harus diisi.");
+    if (!amount || !category || !selectedProduct) {
+      showError("Produk, Nominal, dan Kategori harus diisi.");
       return;
     }
     if ((eWalletCategories.includes(category) || bankCategories.includes(category)) && !destination) {
@@ -132,11 +157,11 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
       amount: parseFloat(amount),
       adminFee: parseFloat(adminFee) || 0,
       category,
+      productId: selectedProduct.id,
     });
     showSuccess("Penjualan berhasil dicatat!");
 
-    // Reset form
-    setName(""); setAmount(""); setAdminFee(""); setCategory(""); setDestination(""); setBankName("");
+    setName(""); setAmount(""); setAdminFee(""); setCategory(""); setDestination(""); setBankName(""); setSelectedProduct(null);
   };
 
   return (
@@ -146,8 +171,30 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label>Produk/Layanan</Label>
+              <Popover open={productComboboxOpen} onOpenChange={setProductComboboxOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    {selectedProduct ? selectedProduct.name : "Pilih produk..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Cari produk..." />
+                    <CommandList>
+                      <CommandEmpty>{isLoadingProducts ? "Memuat..." : "Produk tidak ditemukan."}</CommandEmpty>
+                      <CommandGroup>
+                        {products?.map((p) => <CommandItem key={p.id} value={p.name} onSelect={() => { setSelectedProduct(p); setProductComboboxOpen(false); }}>{p.name}</CommandItem>)}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="name">Nama Pelanggan (Opsional)</Label>
-              <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+              <Popover open={customerComboboxOpen} onOpenChange={setCustomerComboboxOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                     {name || "Pilih atau ketik nama..."}
@@ -157,18 +204,20 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                   <Command>
                     <CommandInput placeholder="Cari atau masukkan nama baru..." value={name} onValueChange={setName} />
-                    <CommandEmpty>Nama tidak ditemukan.</CommandEmpty>
-                    <CommandGroup>
-                      {previousCustomers.map((c) => <CommandItem key={c.name} value={c.name} onSelect={(val) => { setName(val); setComboboxOpen(false); }}>{c.name}</CommandItem>)}
-                    </CommandGroup>
+                    <CommandList>
+                      <CommandEmpty>Nama tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {previousCustomers.map((c) => <CommandItem key={c.name} value={c.name} onSelect={(val) => { setName(val); setCustomerComboboxOpen(false); }}>{c.name}</CommandItem>)}
+                      </CommandGroup>
+                    </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Kategori Penjualan</Label>
+              <Label htmlFor="category">Kategori Pembayaran</Label>
               <Select value={category} onValueChange={handleCategoryChange}>
-                <SelectTrigger><SelectValue placeholder="Pilih kategori pembayaran" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                 </SelectContent>
@@ -182,7 +231,7 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
             )}
             <div className="space-y-2">
               <Label htmlFor="amount">Nominal Penjualan (Rp)</Label>
-              <Input id="amount" type="text" inputMode="numeric" placeholder="Contoh: 50000" value={formatCurrency(amount)} onChange={(e) => handleNumericInputChange(e, setAmount)} />
+              <Input id="amount" type="text" value={formatCurrency(amount)} readOnly className="bg-muted" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="admin-fee">Biaya Admin (Rp)</Label>
@@ -195,28 +244,12 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers }: SalesEntryFormP
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {modalType === 'phone' ? 'Masukkan Nomor Tujuan' : 'Masukkan Detail Rekening'}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{modalType === 'phone' ? 'Masukkan Nomor Tujuan' : 'Masukkan Detail Rekening'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            {modalType === 'bank' && (
-              <div className="space-y-2">
-                <Label htmlFor="bank-name">Nama Bank</Label>
-                <Input id="bank-name" value={modalBankName} onChange={(e) => setModalBankName(e.target.value)} placeholder="Contoh: BCA" />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="destination-number">
-                {modalType === 'phone' ? 'Nomor HP' : 'Nomor Rekening'}
-              </Label>
-              <Input id="destination-number" value={modalInputValue} onChange={(e) => setModalInputValue(e.target.value)} placeholder={modalType === 'phone' ? '0812...' : '123456...'} />
-            </div>
+            {modalType === 'bank' && (<div className="space-y-2"><Label htmlFor="bank-name">Nama Bank</Label><Input id="bank-name" value={modalBankName} onChange={(e) => setModalBankName(e.target.value)} placeholder="Contoh: BCA" /></div>)}
+            <div className="space-y-2"><Label htmlFor="destination-number">{modalType === 'phone' ? 'Nomor HP' : 'Nomor Rekening'}</Label><Input id="destination-number" value={modalInputValue} onChange={(e) => setModalInputValue(e.target.value)} placeholder={modalType === 'phone' ? '0812...' : '123456...'} /></div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleModalSave}>Simpan</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={handleModalSave}>Simpan</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </>

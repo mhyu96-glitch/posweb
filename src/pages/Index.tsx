@@ -76,7 +76,7 @@ const Index = () => {
     queryKey: ["sales", session?.user?.id, activeShift?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
-      let query = supabase.from("sales").select("*");
+      let query = supabase.from("sales").select("*, products(name)");
       
       if (activeShift) {
         query = query.eq("shift_id", activeShift.id);
@@ -129,11 +129,12 @@ const Index = () => {
     return categoryFilteredSales.filter(sale => {
       const nameMatch = sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
       const phoneMatch = sale.phone?.toLowerCase().includes(searchTerm.toLowerCase());
-      return nameMatch || phoneMatch;
+      const productMatch = sale.products?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      return nameMatch || phoneMatch || productMatch;
     });
   }, [sales, filter, searchTerm, categoryFilter]);
 
-  const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; }) => {
+  const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; productId?: string; }) => {
     if (!session?.user?.id || !activeShift?.id) {
       showError("Tidak ada shift aktif. Tidak dapat mencatat penjualan.");
       return;
@@ -142,7 +143,7 @@ const Index = () => {
       const { error } = await supabase.from("sales").insert([{ 
         user_id: session.user.id, customer_name: newSale.name, phone: newSale.destination, 
         bank_name: newSale.bankName, amount: newSale.amount, admin_fee: newSale.adminFee,
-        category: newSale.category, shift_id: activeShift.id,
+        category: newSale.category, shift_id: activeShift.id, product_id: newSale.productId,
       }]);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
@@ -169,9 +170,9 @@ const Index = () => {
       showError("Tidak ada data untuk diekspor.");
       return;
     }
-    const headers = ["Waktu Transaksi", "Nama Pelanggan", "Detail Tujuan", "Kategori", "Nominal (Rp)", "Admin (Rp)", "Total (Rp)"];
+    const headers = ["Waktu Transaksi", "Produk", "Nama Pelanggan", "Detail Tujuan", "Kategori", "Nominal (Rp)", "Admin (Rp)", "Total (Rp)"];
     const rows = filteredSales.map(s => [
-      `"${s.createdAt.toLocaleString("id-ID", { hour12: false })}"`, `"${s.customer_name || "-"}"`,
+      `"${s.createdAt.toLocaleString("id-ID", { hour12: false })}"`, `"${s.products?.name || "-"}"`, `"${s.customer_name || "-"}"`,
       `"${s.bank_name ? `${s.bank_name} - ${s.phone}` : s.phone || "-"}"`, `"${s.category || "-"}"`,
       s.amount, s.admin_fee || 0, s.amount + (s.admin_fee || 0),
     ].join(','));
@@ -211,7 +212,7 @@ const Index = () => {
   if (isSessionLoading || isSalesLoading || isShiftLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6 space-y-4">
-        <Skeleton className="h-8 w-1/4" />
+        <Skeleton className="h-8 w-1/ter" />
         <div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div>
         <Skeleton className="h-96" />
       </div>
@@ -230,7 +231,7 @@ const Index = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
           <div className="lg:col-span-1">
-            <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} />
+            <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} userId={session?.user?.id || ""} />
           </div>
           <div className="lg:col-span-2">
             <SalesSummary title="Ringkasan Penjualan" description="Ringkasan penjualan berdasarkan filter yang dipilih." totalSalesAmount={totalSalesAmount} totalAdminFee={totalAdminFee} initialBalance={initialBalance} onSetInitialBalance={setInitialBalance} />
@@ -240,7 +241,7 @@ const Index = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h2 className="text-2xl font-bold">Laporan Penjualan</h2>
             <div className="w-full md:w-auto md:max-w-sm">
-              <Input placeholder="Cari nama atau detail tujuan..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <Input placeholder="Cari produk, nama, atau tujuan..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
           </div>
           <ReportFilters onFilterChange={(mode, value) => setFilter({ mode, value })} onClearFilters={() => { setFilter({ mode: "all" }); setCategoryFilter(""); }} onCategoryChange={setCategoryFilter} categories={uniqueCategories} />
