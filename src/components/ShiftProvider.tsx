@@ -80,7 +80,6 @@ export const ShiftProvider = ({ children }: { children: ReactNode }) => {
       .from("shifts")
       .insert({ 
         starting_balance: startingBalance,
-        user_id: session.user.id // PERBAIKAN: Secara eksplisit mengatur pemilik shift
       })
       .select("id, start_time, starting_balance")
       .single();

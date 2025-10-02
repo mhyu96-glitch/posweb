@@ -131,7 +131,6 @@ const Index = () => {
       const { error } = await supabase
         .from("sales")
         .insert([{ 
-          user_id: session.user.id, // PERBAIKAN: Mengirim user_id secara eksplisit
           customer_name: newSale.name, 
           phone: newSale.destination, 
           bank_name: newSale.bankName,
