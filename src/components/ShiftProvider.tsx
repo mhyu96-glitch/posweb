@@ -73,12 +73,13 @@ export const ShiftProvider = ({ children }: { children: ReactNode }) => {
   }, [session]);
 
   const startShift = async (startingBalance: number) => {
-    if (!session?.user) throw new Error("User not logged in.");
     if (activeShift) throw new Error("Shift already active.");
 
+    // The user_id will be set automatically by the database thanks to the new default value.
+    // This removes a race condition where the session wasn't ready on the client.
     const { data, error } = await supabase
       .from("shifts")
-      .insert({ user_id: session.user.id, starting_balance: startingBalance })
+      .insert({ starting_balance: startingBalance })
       .select("id, start_time, starting_balance")
       .single();
 
