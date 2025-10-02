@@ -33,7 +33,12 @@ const ShiftReport = () => {
         .select("start_time, end_time, starting_balance, profiles(first_name, last_name)")
         .eq("id", shiftId)
         .single();
-      if (error) throw error;
+      
+      // Handle "not found" error gracefully instead of throwing an exception
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
       return data;
     },
     enabled: !!shiftId,
@@ -70,8 +75,8 @@ const ShiftReport = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader><CardTitle>Laporan Tidak Ditemukan</CardTitle></CardHeader>
-          <CardContent><p>Tidak dapat memuat detail untuk shift ini.</p></CardContent>
-          <CardFooter><Button onClick={() => navigate('/login')} className="w-full">Kembali ke Login</Button></CardFooter>
+          <CardContent><p>Tidak dapat memuat detail untuk shift ini. Pastikan Anda memiliki izin untuk melihatnya.</p></CardContent>
+          <CardFooter><Button onClick={() => navigate('/')} className="w-full">Kembali ke Dasbor</Button></CardFooter>
         </Card>
       </div>
     );
