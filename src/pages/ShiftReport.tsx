@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Printer, LogOut } from "lucide-react";
+import { useEffect } from "react";
+import { showError } from "@/utils/toast";
 
 interface ShiftDetails {
   start_time: string;
@@ -25,28 +27,25 @@ const ShiftReport = () => {
   const { shiftId } = useParams();
   const navigate = useNavigate();
 
-  const { data: shiftDetails, isLoading: isLoadingShift } = useQuery<ShiftDetails | null>({
+  const { data: shiftDetails, isLoading: isLoadingShift, error: shiftError } = useQuery<ShiftDetails | null>({
     queryKey: ["shift", shiftId],
     queryFn: async () => {
+      if (!shiftId) return null;
       const { data, error } = await supabase
         .from("shifts")
         .select("start_time, end_time, starting_balance, profiles(first_name, last_name)")
         .eq("id", shiftId)
         .single();
       
-      // Handle "not found" error gracefully instead of throwing an exception
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-      
+      if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
-    enabled: !!shiftId,
   });
 
-  const { data: sales, isLoading: isLoadingSales } = useQuery<Sale[]>({
+  const { data: sales, isLoading: isLoadingSales, error: salesError } = useQuery<Sale[]>({
     queryKey: ["shiftSales", shiftId],
     queryFn: async () => {
+      if (!shiftId) return [];
       const { data, error } = await supabase
         .from("sales")
         .select("category, amount, admin_fee")
@@ -56,6 +55,17 @@ const ShiftReport = () => {
     },
     enabled: !!shiftId,
   });
+
+  useEffect(() => {
+    if (shiftError) {
+      console.error("Error fetching shift details:", shiftError);
+      showError(`Gagal memuat detail shift: ${shiftError.message}`);
+    }
+    if (salesError) {
+      console.error("Error fetching sales data:", salesError);
+      showError(`Gagal memuat data penjualan: ${salesError.message}`);
+    }
+  }, [shiftError, salesError]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -75,7 +85,12 @@ const ShiftReport = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader><CardTitle>Laporan Tidak Ditemukan</CardTitle></CardHeader>
-          <CardContent><p>Tidak dapat memuat detail untuk shift ini. Pastikan Anda memiliki izin untuk melihatnya.</p></CardContent>
+          <CardContent>
+            <p>Tidak dapat memuat detail untuk shift ini.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Ini bisa terjadi jika shift tidak ada atau Anda tidak memiliki izin untuk melihatnya.
+            </p>
+          </CardContent>
           <CardFooter><Button onClick={() => navigate('/')} className="w-full">Kembali ke Dasbor</Button></CardFooter>
         </Card>
       </div>
@@ -105,7 +120,7 @@ const ShiftReport = () => {
           <CardDescription>
             Kasir: {shiftDetails.profiles?.first_name || "N/A"}
           </CardDescription>
-        </CardHeader>
+        </Header>
         <CardContent className="space-y-4">
           <div className="text-sm space-y-1">
             <div className="flex justify-between"><span>Mulai Shift:</span> <span>{new Date(shiftDetails.start_time).toLocaleString("id-ID")}</span></div>
