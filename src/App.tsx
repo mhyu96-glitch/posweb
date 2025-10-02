@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Products from "./pages/Products";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import Customers from "./pages/Customers";
 import MainLayout from "./components/MainLayout";
 import { ShiftProvider } from "./components/ShiftProvider";
 import ShiftReport from "./pages/ShiftReport";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/products" element={<Products />} />
               <Route path="/users" element={<Users />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/customers" element={<Customers />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/shift-report/:shiftId" element={<ShiftReport />} />

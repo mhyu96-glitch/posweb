@@ -155,7 +155,7 @@ const Index = () => {
     });
   }, [sales, filter, searchTerm, categoryFilter]);
 
-  const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; productId?: string; }) => {
+  const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; productId?: string; costPrice?: number; }) => {
     if (!session?.user?.id || !activeShift?.id) {
       showError("Tidak ada shift aktif. Tidak dapat mencatat penjualan.");
       return;
@@ -184,6 +184,7 @@ const Index = () => {
         shift_id: activeShift.id, 
         product_id: newSale.productId,
         customer_id: customerId,
+        cost_price: newSale.costPrice,
       }]);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
@@ -240,8 +241,16 @@ const Index = () => {
     return () => window.removeEventListener("afterprint", handleAfterPrint);
   }, []);
 
-  const totalSalesAmount = filteredSales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
-  const totalAdminFee = filteredSales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
+  const { totalSalesAmount, totalAdminFee, totalProfit } = useMemo(() => {
+    if (!filteredSales) return { totalSalesAmount: 0, totalAdminFee: 0, totalProfit: 0 };
+    return filteredSales.reduce((acc, sale) => {
+      acc.totalSalesAmount += sale.amount;
+      acc.totalAdminFee += sale.admin_fee || 0;
+      const profitFromProduct = sale.amount - (sale.cost_price || 0);
+      acc.totalProfit += profitFromProduct + (sale.admin_fee || 0);
+      return acc;
+    }, { totalSalesAmount: 0, totalAdminFee: 0, totalProfit: 0 });
+  }, [filteredSales]);
 
   if (isSessionLoading || isSalesLoading || isShiftLoading) {
     return (
@@ -268,7 +277,7 @@ const Index = () => {
             <SalesEntryForm onAddSale={handleAddSale} customers={customers || []} userId={session?.user?.id || ""} />
           </div>
           <div className="lg:col-span-2">
-            <SalesSummary title="Ringkasan Penjualan" description="Ringkasan penjualan berdasarkan filter yang dipilih." totalSalesAmount={totalSalesAmount} totalAdminFee={totalAdminFee} initialBalance={initialBalance} onSetInitialBalance={setInitialBalance} />
+            <SalesSummary title="Ringkasan Penjualan" description="Ringkasan penjualan berdasarkan filter yang dipilih." totalSalesAmount={totalSalesAmount} totalAdminFee={totalAdminFee} totalProfit={totalProfit} initialBalance={initialBalance} onSetInitialBalance={setInitialBalance} />
           </div>
         </div>
         <div className="space-y-4">

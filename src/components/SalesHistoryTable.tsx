@@ -44,6 +44,7 @@ export interface Sale {
   bank_name?: string;
   amount: number;
   admin_fee?: number;
+  cost_price?: number;
   category?: string;
   createdAt: Date;
   products: { name: string } | null;

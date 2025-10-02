@@ -52,6 +52,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  cost_price: number | null;
 }
 
 interface SalesEntryFormProps {
@@ -63,6 +64,7 @@ interface SalesEntryFormProps {
     adminFee: number;
     category: string;
     productId?: string;
+    costPrice?: number;
   }) => void;
   customers: Customer[];
   userId: string;
@@ -89,7 +91,7 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price")
+        .select("id, name, price, cost_price")
         .eq("user_id", userId)
         .order("name");
       if (error) throw error;
@@ -167,6 +169,7 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
       adminFee: parseFloat(adminFee) || 0,
       category,
       productId: selectedProduct?.id,
+      costPrice: selectedProduct?.cost_price || 0,
     });
     showSuccess("Penjualan berhasil dicatat!");
 

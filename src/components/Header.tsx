@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Clock, Users as UsersIcon, Settings } from "lucide-react";
+import { User, LogOut, Clock, Users as UsersIcon, Settings, UserSquare } from "lucide-react";
 import { useShift } from "./ShiftProvider";
 import { showSuccess, showError } from "@/utils/toast";
 
@@ -70,25 +70,14 @@ export const Header = () => {
             </span>
           </NavLink>
           <nav className="flex items-center space-x-6 text-sm font-medium">
-            <NavLink
-              to="/products"
-              className={({ isActive }) =>
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground transition-colors hover:text-foreground"
-              }
-            >
+            <NavLink to="/products" className={({ isActive }) => isActive ? "text-foreground" : "text-muted-foreground transition-colors hover:text-foreground"}>
               Produk
             </NavLink>
+            <NavLink to="/customers" className={({ isActive }) => isActive ? "text-foreground" : "text-muted-foreground transition-colors hover:text-foreground"}>
+              Pelanggan
+            </NavLink>
             {profile?.role === 'admin' && (
-              <NavLink
-                to="/users"
-                className={({ isActive }) =>
-                  isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground transition-colors hover:text-foreground"
-                }
-              >
+              <NavLink to="/users" className={({ isActive }) => isActive ? "text-foreground" : "text-muted-foreground transition-colors hover:text-foreground"}>
                 Pengguna
               </NavLink>
             )}
@@ -122,6 +111,10 @@ export const Header = () => {
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/customers")}>
+                  <UserSquare className="mr-2 h-4 w-4" />
+                  <span>Manajemen Pelanggan</span>
                 </DropdownMenuItem>
                 {profile?.role === 'admin' && (
                   <>

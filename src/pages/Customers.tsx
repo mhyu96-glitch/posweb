@@ -55,38 +55,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { showError, showSuccess } from "@/utils/toast";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 
-const productSchema = z.object({
-  name: z.string().min(1, "Nama produk harus diisi."),
-  price: z.coerce.number().min(0, "Harga jual harus angka positif."),
-  cost_price: z.coerce.number().min(0, "Harga modal harus angka positif.").optional(),
+const customerSchema = z.object({
+  name: z.string().min(1, "Nama pelanggan harus diisi."),
+  phone: z.string().optional(),
 });
 
-type ProductFormValues = z.infer<typeof productSchema>;
+type CustomerFormValues = z.infer<typeof customerSchema>;
 
-interface Product {
+interface Customer {
   id: string;
   name: string;
-  price: number;
-  cost_price: number | null;
+  phone: string | null;
 }
 
-const Products = () => {
+const Customers = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
   const { data: session } = useQuery({
     queryKey: ["session"],
     queryFn: async () => (await supabase.auth.getSession()).data.session,
   });
 
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ["products", session?.user?.id],
+  const { data: customers, isLoading } = useQuery<Customer[]>({
+    queryKey: ["customers", session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
-        .from("products")
-        .select("id, name, price, cost_price")
+        .from("customers")
+        .select("id, name, phone")
         .eq("user_id", session.user.id)
         .order("name", { ascending: true });
       if (error) throw error;
@@ -95,50 +93,50 @@ const Products = () => {
     enabled: !!session?.user?.id,
   });
 
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
-    defaultValues: { name: "", price: 0, cost_price: 0 },
+  const form = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerSchema),
+    defaultValues: { name: "", phone: "" },
   });
 
-  const handleDialogOpen = (product: Product | null = null) => {
-    setEditingProduct(product);
-    form.reset(product ? { name: product.name, price: product.price, cost_price: product.cost_price || 0 } : { name: "", price: 0, cost_price: 0 });
+  const handleDialogOpen = (customer: Customer | null = null) => {
+    setEditingCustomer(customer);
+    form.reset(customer ? { name: customer.name, phone: customer.phone || "" } : { name: "", phone: "" });
     setIsDialogOpen(true);
   };
 
-  const onSubmit = async (values: ProductFormValues) => {
+  const onSubmit = async (values: CustomerFormValues) => {
     if (!session?.user?.id) return;
 
     try {
-      if (editingProduct) {
+      if (editingCustomer) {
         const { error } = await supabase
-          .from("products")
+          .from("customers")
           .update({ ...values })
-          .eq("id", editingProduct.id);
+          .eq("id", editingCustomer.id);
         if (error) throw error;
-        showSuccess("Produk berhasil diperbarui!");
+        showSuccess("Pelanggan berhasil diperbarui!");
       } else {
         const { error } = await supabase
-          .from("products")
+          .from("customers")
           .insert([{ ...values, user_id: session.user.id }]);
         if (error) throw error;
-        showSuccess("Produk berhasil ditambahkan!");
+        showSuccess("Pelanggan berhasil ditambahkan!");
       }
-      queryClient.invalidateQueries({ queryKey: ["products", session.user.id] });
+      queryClient.invalidateQueries({ queryKey: ["customers", session.user.id] });
       setIsDialogOpen(false);
     } catch (error) {
-      showError(`Gagal menyimpan produk.`);
+      showError(`Gagal menyimpan data pelanggan.`);
     }
   };
 
-  const handleDelete = async (productId: string) => {
+  const handleDelete = async (customerId: string) => {
     try {
-      const { error } = await supabase.from("products").delete().eq("id", productId);
+      const { error } = await supabase.from("customers").delete().eq("id", customerId);
       if (error) throw error;
-      showSuccess("Produk berhasil dihapus.");
-      queryClient.invalidateQueries({ queryKey: ["products", session.user.id] });
+      showSuccess("Pelanggan berhasil dihapus.");
+      queryClient.invalidateQueries({ queryKey: ["customers", session.user.id] });
     } catch (error) {
-      showError("Gagal menghapus produk.");
+      showError("Gagal menghapus pelanggan.");
     }
   };
 
@@ -146,38 +144,31 @@ const Products = () => {
     <div className="container mx-auto p-4 md:p-6">
       <main className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Manajemen Produk</h1>
+          <h1 className="text-3xl font-bold">Manajemen Pelanggan</h1>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => handleDialogOpen()}>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Produk
+                Tambah Pelanggan
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>{editingProduct ? "Edit Produk" : "Tambah Produk Baru"}</DialogTitle>
+                <DialogTitle>{editingCustomer ? "Edit Pelanggan" : "Tambah Pelanggan Baru"}</DialogTitle>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                   <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nama Produk</FormLabel>
-                      <FormControl><Input placeholder="Contoh: Transfer BNI" {...field} /></FormControl>
+                      <FormLabel>Nama Pelanggan</FormLabel>
+                      <FormControl><Input placeholder="Contoh: Budi" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={form.control} name="price" render={({ field }) => (
+                  <FormField control={form.control} name="phone" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Harga Jual (Rp)</FormLabel>
-                      <FormControl><Input type="number" placeholder="Contoh: 50000" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="cost_price" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Harga Modal (Rp)</FormLabel>
-                      <FormControl><Input type="number" placeholder="Contoh: 48000" {...field} /></FormControl>
+                      <FormLabel>Nomor Telepon (Opsional)</FormLabel>
+                      <FormControl><Input placeholder="Contoh: 08123456789" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -193,17 +184,16 @@ const Products = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Daftar Produk</CardTitle>
-            <CardDescription>Daftar semua produk atau layanan yang Anda tawarkan.</CardDescription>
+            <CardTitle>Daftar Pelanggan</CardTitle>
+            <CardDescription>Daftar semua pelanggan yang tersimpan di sistem.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nama Produk</TableHead>
-                    <TableHead className="text-right">Harga Modal (Rp)</TableHead>
-                    <TableHead className="text-right">Harga Jual (Rp)</TableHead>
+                    <TableHead>Nama Pelanggan</TableHead>
+                    <TableHead>Nomor Telepon</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -212,20 +202,18 @@ const Products = () => {
                     Array.from({ length: 3 }).map((_, i) => (
                       <TableRow key={i}>
                         <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                         <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                       </TableRow>
                     ))
-                  ) : products && products.length > 0 ? (
-                    products.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell className="text-right">{(product.cost_price || 0).toLocaleString("id-ID")}</TableCell>
-                        <TableCell className="text-right">{product.price.toLocaleString("id-ID")}</TableCell>
+                  ) : customers && customers.length > 0 ? (
+                    customers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell>{customer.phone || "-"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
-                            <Button variant="outline" size="icon" onClick={() => handleDialogOpen(product)}>
+                            <Button variant="outline" size="icon" onClick={() => handleDialogOpen(customer)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <AlertDialog>
@@ -235,11 +223,11 @@ const Products = () => {
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                                  <AlertDialogDescription>Tindakan ini akan menghapus produk secara permanen.</AlertDialogDescription>
+                                  <AlertDialogDescription>Tindakan ini akan menghapus data pelanggan secara permanen.</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Batal</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(product.id)}>Hapus</AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleDelete(customer.id)}>Hapus</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -249,7 +237,7 @@ const Products = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">Belum ada produk. Silakan tambahkan produk baru.</TableCell>
+                      <TableCell colSpan={3} className="h-24 text-center">Belum ada pelanggan.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -262,4 +250,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default Customers;

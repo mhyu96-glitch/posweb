@@ -18,6 +18,7 @@ interface SalesSummaryProps {
   description: string;
   totalSalesAmount: number;
   totalAdminFee: number;
+  totalProfit: number;
   initialBalance: number;
   onSetInitialBalance: (balance: number) => void;
 }
@@ -27,6 +28,7 @@ export const SalesSummary = ({
   description,
   totalSalesAmount,
   totalAdminFee,
+  totalProfit,
   initialBalance,
   onSetInitialBalance,
 }: SalesSummaryProps) => {
@@ -88,16 +90,10 @@ export const SalesSummary = ({
               Rp {totalSalesAmount.toLocaleString("id-ID")}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span>Total Biaya Admin:</span>
-            <span className="font-medium">
-              Rp {totalAdminFee.toLocaleString("id-ID")}
-            </span>
-          </div>
           <div className="flex justify-between font-bold text-green-600">
-            <span>Keuntungan Penjualan:</span>
+            <span>Total Laba Bersih:</span>
             <span>
-              + Rp {totalAdminFee.toLocaleString("id-ID")}
+              + Rp {totalProfit.toLocaleString("id-ID")}
             </span>
           </div>
           <div className="flex justify-between pt-2 border-t">
