@@ -31,8 +31,14 @@ export const Header = () => {
     queryKey: ["profile", session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
-      const { data } = await supabase.from("profiles").select("role").eq("id", session.user.id).single();
-      return data;
+      // Use a more robust query that doesn't fail if profile is missing
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .limit(1);
+      if (error) throw error;
+      return data?.[0] || null;
     },
     enabled: !!session?.user?.id,
   });

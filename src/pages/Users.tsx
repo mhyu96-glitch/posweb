@@ -61,8 +61,13 @@ const Users = () => {
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
-      const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-      return data;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .limit(1);
+      if (error) throw error;
+      return data?.[0] || null;
     },
     enabled: !!session?.user?.id,
   });
