@@ -79,6 +79,7 @@ export const ShiftProvider = ({ children }: { children: ReactNode }) => {
     const { data, error } = await supabase
       .from("shifts")
       .insert({ 
+        user_id: session.user.id,
         starting_balance: startingBalance,
       })
       .select("id, start_time, starting_balance")
