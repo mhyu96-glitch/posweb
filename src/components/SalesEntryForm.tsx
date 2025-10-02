@@ -150,8 +150,8 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !category || !selectedProduct) {
-      showError("Produk, Nominal, dan Kategori harus diisi.");
+    if (!amount || !category) {
+      showError("Nominal dan Kategori harus diisi.");
       return;
     }
     if ((eWalletCategories.includes(category) || bankCategories.includes(category)) && !destination) {
@@ -166,7 +166,7 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
       amount: parseFloat(amount),
       adminFee: parseFloat(adminFee) || 0,
       category,
-      productId: selectedProduct.id,
+      productId: selectedProduct?.id,
     });
     showSuccess("Penjualan berhasil dicatat!");
 
@@ -189,7 +189,7 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Produk/Layanan</Label>
+              <Label>Produk/Layanan (Opsional)</Label>
               <Popover open={productComboboxOpen} onOpenChange={setProductComboboxOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
@@ -249,7 +249,7 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
             )}
             <div className="space-y-2">
               <Label htmlFor="amount">Nominal Penjualan (Rp)</Label>
-              <Input id="amount" type="text" value={formatCurrency(amount)} readOnly className="bg-muted" />
+              <Input id="amount" type="text" inputMode="numeric" placeholder="Contoh: 50000" value={formatCurrency(amount)} onChange={(e) => handleNumericInputChange(e, setAmount)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="admin-fee">Biaya Admin (Rp)</Label>
@@ -272,4 +272,3 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
       </Dialog>
     </>
   );
-};
