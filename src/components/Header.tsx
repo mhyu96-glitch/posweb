@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Clock, Users as UsersIcon } from "lucide-react";
+import { User, LogOut, Clock, Users as UsersIcon, Settings } from "lucide-react";
 import { useShift } from "./ShiftProvider";
 import { showSuccess, showError } from "@/utils/toast";
 
@@ -31,7 +31,6 @@ export const Header = () => {
     queryKey: ["profile", session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
-      // Use a more robust query that doesn't fail if profile is missing
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
@@ -125,10 +124,16 @@ export const Header = () => {
                   <span>Profil</span>
                 </DropdownMenuItem>
                 {profile?.role === 'admin' && (
-                  <DropdownMenuItem onClick={() => navigate("/users")}>
-                    <UsersIcon className="mr-2 h-4 w-4" />
-                    <span>Manajemen Pengguna</span>
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/users")}>
+                      <UsersIcon className="mr-2 h-4 w-4" />
+                      <span>Manajemen Pengguna</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/settings")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Pengaturan Toko</span>
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

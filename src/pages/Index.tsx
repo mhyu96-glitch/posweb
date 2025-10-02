@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt } from "@/components/Receipt";
 import { isSameMonth, isSameYear, startOfDay, endOfDay } from "date-fns";
 import { SalesChart } from "@/components/SalesChart";
+import { CategoryChart } from "@/components/CategoryChart";
 import { Input } from "@/components/ui/input";
 import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
@@ -44,7 +45,7 @@ const Index = () => {
 
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
-    fn: async () => {
+    queryFn: async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
       if (!data.session) {
@@ -56,13 +57,27 @@ const Index = () => {
     staleTime: Infinity,
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ["settings", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
+        .from("settings")
+        .select("shop_name, shop_address, shop_phone")
+        .eq("user_id", session.user.id)
+        .single();
+      if (error && error.code !== "PGRST116") console.error(error);
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
+
   const { data: sales, isLoading: isSalesLoading } = useQuery<Sale[]>({
     queryKey: ["sales", session?.user?.id, activeShift?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       let query = supabase.from("sales").select("*");
       
-      // If cashier is on shift, only show sales for that shift
       if (activeShift) {
         query = query.eq("shift_id", activeShift.id);
       }
@@ -119,32 +134,20 @@ const Index = () => {
   }, [sales, filter, searchTerm, categoryFilter]);
 
   const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; }) => {
-    if (!session?.user?.id) {
-      showError("Anda harus login untuk mencatat penjualan.");
-      return;
-    }
-    if (!activeShift?.id) {
+    if (!session?.user?.id || !activeShift?.id) {
       showError("Tidak ada shift aktif. Tidak dapat mencatat penjualan.");
       return;
     }
     try {
-      const { error } = await supabase
-        .from("sales")
-        .insert([{ 
-          user_id: session.user.id,
-          customer_name: newSale.name, 
-          phone: newSale.destination, 
-          bank_name: newSale.bankName,
-          amount: newSale.amount, 
-          admin_fee: newSale.adminFee,
-          category: newSale.category,
-          shift_id: activeShift.id,
-        }]);
+      const { error } = await supabase.from("sales").insert([{ 
+        user_id: session.user.id, customer_name: newSale.name, phone: newSale.destination, 
+        bank_name: newSale.bankName, amount: newSale.amount, admin_fee: newSale.adminFee,
+        category: newSale.category, shift_id: activeShift.id,
+      }]);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
     } catch (error) {
-      showError("Gagal menyimpan penjualan. Pastikan shift Anda masih aktif.");
-      console.error("Error adding sale:", error);
+      showError("Gagal menyimpan penjualan.");
     }
   };
 
@@ -216,14 +219,14 @@ const Index = () => {
   }
 
   if (receiptToPrint) {
-    return <div id="receipt-print-area"><Receipt sale={receiptToPrint} /></div>;
+    return <div id="receipt-print-area"><Receipt sale={receiptToPrint} settings={settings} /></div>;
   }
 
   return (
     <div className="container mx-auto p-4 md:p-6">
       <main className="space-y-8">
         <div className="print:hidden">
-          {isSalesLoading ? <div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div> : <DashboardMetrics sales={sales || []} />}
+          <DashboardMetrics sales={sales || []} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
           <div className="lg:col-span-1">
@@ -243,9 +246,12 @@ const Index = () => {
           <ReportFilters onFilterChange={(mode, value) => setFilter({ mode, value })} onClearFilters={() => { setFilter({ mode: "all" }); setCategoryFilter(""); }} onCategoryChange={setCategoryFilter} categories={uniqueCategories} />
         </div>
         <div className="w-full">
-          {isSalesLoading ? <Skeleton className="h-96 w-full" /> : <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} onDeleteSale={handleDeleteSale} onExportCSV={handleExportCSV} />}
+          <SalesHistoryTable sales={filteredSales || []} onPrintReceipt={handlePrintReceipt} onDeleteSale={handleDeleteSale} onExportCSV={handleExportCSV} />
         </div>
-        <div className="print:hidden"><SalesChart sales={sales || []} /></div>
+        <div className="grid gap-8 md:grid-cols-2 print:hidden">
+          <SalesChart sales={sales || []} />
+          <CategoryChart sales={sales || []} />
+        </div>
       </main>
       <footer className="mt-12 print:hidden"><MadeWithDyad /></footer>
     </div>
