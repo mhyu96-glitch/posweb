@@ -272,3 +272,4 @@ export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormP
       </Dialog>
     </>
   );
+};
