@@ -1,7 +1,5 @@
 "use client";
 
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -16,9 +14,16 @@ import { showError } from "@/utils/toast";
 const Login = () => {
   const navigate = useNavigate();
   const { startShift, activeShift } = useShift();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  
+  // State for Cashier Login
+  const [cashierUsername, setCashierUsername] = useState("");
+  const [cashierPassword, setCashierPassword] = useState("");
   const [startingBalance, setStartingBalance] = useState("");
+
+  // State for Admin Login
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -28,8 +33,7 @@ const Login = () => {
         if (activeShift) {
           navigate("/");
         } else {
-          // If logged in but no shift, check role
-          const { data: profile } = await supabase.from('profiles').select('role').single();
+          const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
           if (profile?.role === 'admin') {
             navigate("/");
           }
@@ -38,10 +42,10 @@ const Login = () => {
     };
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN") {
-        // For admin login via Auth component
-        navigate("/");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        // If user logs out from another tab, ensure they are on the login page
+        navigate("/login");
       }
     });
 
@@ -52,10 +56,8 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Construct the internal email from the username
-      const email = `${username.toLowerCase()}@kasir.local`;
-      
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const email = `${cashierUsername.toLowerCase()}@kasir.local`;
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: cashierPassword });
       if (signInError) throw signInError;
 
       const balance = parseFloat(startingBalance.replace(/\./g, '')) || 0;
@@ -63,7 +65,33 @@ const Login = () => {
       navigate("/");
     } catch (error: any) {
       showError(error.message || "Gagal memulai shift. Periksa kembali username dan password Anda.");
-      supabase.auth.signOut(); // Ensure user is logged out on failure
+      supabase.auth.signOut();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const email = `${adminUsername.toLowerCase()}@kasir.local`;
+      const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({ email, password: adminPassword });
+      if (signInError) throw signInError;
+      if (!user) throw new Error("Login gagal, pengguna tidak ditemukan.");
+
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (profileError) throw profileError;
+
+      if (profile?.role !== 'admin') {
+        await supabase.auth.signOut();
+        throw new Error("Akses ditolak. Akun ini bukan akun admin.");
+      }
+      
+      navigate("/");
+    } catch (error: any) {
+      showError(error.message || "Login admin gagal. Periksa kembali username dan password Anda.");
+      supabase.auth.signOut();
     } finally {
       setIsLoading(false);
     }
@@ -95,11 +123,11 @@ const Login = () => {
               <form onSubmit={handleCashierLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="cashier-username">Username</Label>
-                  <Input id="cashier-username" type="text" placeholder="kasir01" required value={username} onChange={(e) => setUsername(e.target.value)} />
+                  <Input id="cashier-username" type="text" placeholder="kasir01" required value={cashierUsername} onChange={(e) => setCashierUsername(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cashier-password">Password</Label>
-                  <Input id="cashier-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Input id="cashier-password" type="password" required value={cashierPassword} onChange={(e) => setCashierPassword(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="starting-balance">Saldo Awal Kas (Rp)</Label>
@@ -119,13 +147,19 @@ const Login = () => {
               <CardDescription>Gunakan akun admin Anda untuk mengakses dasbor penuh.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Auth
-                supabaseClient={supabase}
-                appearance={{ theme: ThemeSupa }}
-                providers={[]}
-                theme="light"
-                view="sign_in"
-              />
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-username">Username</Label>
+                  <Input id="admin-username" type="text" placeholder="admin" required value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">Password</Label>
+                  <Input id="admin-password" type="password" required value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Masuk..." : "Login"}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
