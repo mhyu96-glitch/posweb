@@ -20,6 +20,12 @@ import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
 import { useShift } from "@/components/ShiftProvider";
 
+interface Customer {
+  id: string;
+  name: string;
+  phone: string | null;
+}
+
 const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -76,7 +82,7 @@ const Index = () => {
     queryKey: ["sales", session?.user?.id, activeShift?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
-      let query = supabase.from("sales").select("*, products(name)");
+      let query = supabase.from("sales").select("*, products(name), customers(name)");
       
       if (activeShift) {
         query = query.eq("shift_id", activeShift.id);
@@ -87,6 +93,21 @@ const Index = () => {
       return data.map(sale => ({ ...sale, createdAt: new Date(sale.created_at) }));
     },
     enabled: !!session?.user?.id && !isShiftLoading,
+  });
+
+  const { data: customers } = useQuery<Customer[]>({
+    queryKey: ["customers", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name, phone")
+        .eq("user_id", session.user.id)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id,
   });
 
   const uniqueCategories = useMemo(() => {
@@ -140,13 +161,33 @@ const Index = () => {
       return;
     }
     try {
+      let customerId = null;
+      if (newSale.name) {
+        const { data: customer, error: upsertError } = await supabase
+          .from('customers')
+          .upsert({ user_id: session.user.id, name: newSale.name, phone: newSale.destination }, { onConflict: 'user_id,name' })
+          .select('id')
+          .single();
+        
+        if (upsertError) throw upsertError;
+        customerId = customer.id;
+      }
+
       const { error } = await supabase.from("sales").insert([{ 
-        user_id: session.user.id, customer_name: newSale.name, phone: newSale.destination, 
-        bank_name: newSale.bankName, amount: newSale.amount, admin_fee: newSale.adminFee,
-        category: newSale.category, shift_id: activeShift.id, product_id: newSale.productId,
+        user_id: session.user.id, 
+        customer_name: newSale.name, 
+        phone: newSale.destination, 
+        bank_name: newSale.bankName, 
+        amount: newSale.amount, 
+        admin_fee: newSale.adminFee,
+        category: newSale.category, 
+        shift_id: activeShift.id, 
+        product_id: newSale.productId,
+        customer_id: customerId,
       }]);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
+      queryClient.invalidateQueries({ queryKey: ["customers", session.user.id] });
     } catch (error) {
       showError("Gagal menyimpan penjualan.");
     }
@@ -201,13 +242,6 @@ const Index = () => {
 
   const totalSalesAmount = filteredSales?.reduce((sum, sale) => sum + sale.amount, 0) || 0;
   const totalAdminFee = filteredSales?.reduce((sum, sale) => sum + (sale.admin_fee || 0), 0) || 0;
-  
-  const previousCustomers = useMemo(() => sales
-    ? Array.from(sales.reduce((map, sale) => {
-        if (sale.customer_name) map.set(sale.customer_name, { name: sale.customer_name });
-        return map;
-      }, new Map<string, { name: string }>()).values())
-    : [], [sales]);
 
   if (isSessionLoading || isSalesLoading || isShiftLoading) {
     return (
@@ -231,7 +265,7 @@ const Index = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start print:hidden">
           <div className="lg:col-span-1">
-            <SalesEntryForm onAddSale={handleAddSale} previousCustomers={previousCustomers} userId={session?.user?.id || ""} />
+            <SalesEntryForm onAddSale={handleAddSale} customers={customers || []} userId={session?.user?.id || ""} />
           </div>
           <div className="lg:col-span-2">
             <SalesSummary title="Ringkasan Penjualan" description="Ringkasan penjualan berdasarkan filter yang dipilih." totalSalesAmount={totalSalesAmount} totalAdminFee={totalAdminFee} initialBalance={initialBalance} onSetInitialBalance={setInitialBalance} />

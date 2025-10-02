@@ -43,7 +43,9 @@ import {
 } from "@/components/ui/command";
 
 interface Customer {
+  id: string;
   name: string;
+  phone: string | null;
 }
 
 interface Product {
@@ -62,7 +64,7 @@ interface SalesEntryFormProps {
     category: string;
     productId?: string;
   }) => void;
-  previousCustomers: Customer[];
+  customers: Customer[];
   userId: string;
 }
 
@@ -72,7 +74,7 @@ const categories = [
 const eWalletCategories = ["DANA", "Gopay", "OVO"];
 const bankCategories = ["Transfer Antar Bank", "Transfer Beda Bank"];
 
-export const SalesEntryForm = ({ onAddSale, previousCustomers, userId }: SalesEntryFormProps) => {
+export const SalesEntryForm = ({ onAddSale, customers, userId }: SalesEntryFormProps) => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [adminFee, setAdminFee] = useState("");
@@ -80,6 +82,7 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers, userId }: SalesEn
   const [customerComboboxOpen, setCustomerComboboxOpen] = useState(false);
   const [productComboboxOpen, setProductComboboxOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
     queryKey: ["products", userId],
@@ -121,6 +124,12 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers, userId }: SalesEn
     setCategory(value);
     setDestination("");
     setBankName("");
+
+    if (selectedCustomer && selectedCustomer.phone) {
+      setDestination(selectedCustomer.phone);
+      return;
+    }
+
     if (eWalletCategories.includes(value)) {
       setModalType("phone");
       setIsModalOpen(true);
@@ -161,7 +170,16 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers, userId }: SalesEn
     });
     showSuccess("Penjualan berhasil dicatat!");
 
-    setName(""); setAmount(""); setAdminFee(""); setCategory(""); setDestination(""); setBankName(""); setSelectedProduct(null);
+    setName(""); setAmount(""); setAdminFee(""); setCategory(""); setDestination(""); setBankName(""); setSelectedProduct(null); setSelectedCustomer(null);
+  };
+
+  const handleCustomerSelect = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setName(customer.name);
+    if (category && customer.phone) {
+      setDestination(customer.phone);
+    }
+    setCustomerComboboxOpen(false);
   };
 
   return (
@@ -203,11 +221,11 @@ export const SalesEntryForm = ({ onAddSale, previousCustomers, userId }: SalesEn
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                   <Command>
-                    <CommandInput placeholder="Cari atau masukkan nama baru..." value={name} onValueChange={setName} />
+                    <CommandInput placeholder="Cari atau masukkan nama baru..." value={name} onValueChange={(value) => { setName(value); setSelectedCustomer(null); }} />
                     <CommandList>
-                      <CommandEmpty>Nama tidak ditemukan.</CommandEmpty>
+                      <CommandEmpty>Pelanggan tidak ditemukan. Transaksi baru akan membuat pelanggan ini.</CommandEmpty>
                       <CommandGroup>
-                        {previousCustomers.map((c) => <CommandItem key={c.name} value={c.name} onSelect={(val) => { setName(val); setCustomerComboboxOpen(false); }}>{c.name}</CommandItem>)}
+                        {customers.map((c) => <CommandItem key={c.id} value={c.name} onSelect={() => handleCustomerSelect(c)}>{c.name}</CommandItem>)}
                       </CommandGroup>
                     </CommandList>
                   </Command>
