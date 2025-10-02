@@ -74,12 +74,15 @@ export const ShiftProvider = ({ children }: { children: ReactNode }) => {
 
   const startShift = async (startingBalance: number) => {
     if (activeShift) throw new Error("Shift sudah aktif.");
-    if (!session?.user?.id) throw new Error("Pengguna tidak login.");
+
+    // Get the current user directly from Supabase to avoid race conditions
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) throw new Error("Pengguna tidak login atau sesi tidak valid.");
 
     const { data, error } = await supabase
       .from("shifts")
       .insert({ 
-        user_id: session.user.id,
+        user_id: user.id,
         starting_balance: startingBalance,
       })
       .select("id, start_time, starting_balance")
