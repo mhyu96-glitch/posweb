@@ -120,7 +120,7 @@ const ShiftReport = () => {
           <CardDescription>
             Kasir: {shiftDetails.profiles?.first_name || "N/A"}
           </CardDescription>
-        </Header>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-sm space-y-1">
             <div className="flex justify-between"><span>Mulai Shift:</span> <span>{new Date(shiftDetails.start_time).toLocaleString("id-ID")}</span></div>
