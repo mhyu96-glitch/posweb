@@ -33,7 +33,7 @@ const ShiftReport = () => {
       if (!shiftId) return null;
       const { data, error } = await supabase
         .from("shifts")
-        .select("start_time, end_time, starting_balance, profiles(first_name, last_name)")
+        .select("start_time, end_time, starting_balance, profiles!left(first_name, last_name)")
         .eq("id", shiftId)
         .single();
       
