@@ -44,7 +44,7 @@ const Index = () => {
 
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
-    queryFn: async () => {
+    fn: async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
       if (!data.session) {
@@ -123,6 +123,10 @@ const Index = () => {
       showError("Anda harus login untuk mencatat penjualan.");
       return;
     }
+    if (!activeShift?.id) {
+      showError("Tidak ada shift aktif. Tidak dapat mencatat penjualan.");
+      return;
+    }
     try {
       const { error } = await supabase
         .from("sales")
@@ -133,13 +137,12 @@ const Index = () => {
           amount: newSale.amount, 
           admin_fee: newSale.adminFee,
           category: newSale.category,
-          user_id: session.user.id,
-          shift_id: activeShift?.id,
+          shift_id: activeShift.id,
         }]);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
     } catch (error) {
-      showError("Gagal menyimpan penjualan.");
+      showError("Gagal menyimpan penjualan. Pastikan shift Anda masih aktif.");
       console.error("Error adding sale:", error);
     }
   };
