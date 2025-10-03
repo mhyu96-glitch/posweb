@@ -20,55 +20,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        setSession(session);
-
-        if (session?.user?.id) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          if (error && error.code !== 'PGRST116') throw error;
-          setProfile(data);
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error("Error fetching initial session or profile:", error);
-        setSession(null);
-        setProfile(null);
-      } finally {
-        setIsLoading(false);
-        setIsProfileLoading(false);
-      }
-    };
-
-    fetchSessionAndProfile();
-
+    // onAuthStateChange fires an initial event with the session when the listener is set up.
+    // This handles both initial session restoration and subsequent auth events.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      setIsLoading(false);
 
       if (session?.user?.id) {
+        // If there's a session, fetch the user's profile.
         setIsProfileLoading(true);
         const { data, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .single();
+        
         if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching profile on auth change:", error);
+          console.error("Error fetching profile:", error);
+          setProfile(null);
+        } else {
+          setProfile(data);
         }
-        setProfile(data);
         setIsProfileLoading(false);
       } else {
+        // If there's no session, clear the profile and stop loading.
         setProfile(null);
         setIsProfileLoading(false);
       }
+      
+      // The main auth loading is finished once the session is determined.
+      setIsLoading(false);
     });
 
     return () => {
