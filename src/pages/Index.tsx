@@ -215,7 +215,7 @@ const Index = () => {
       queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id, profile?.role] });
       queryClient.invalidateQueries({ queryKey: ["customers", session.user.id] });
     } catch (error: any) {
-      console.error("Error saving sale:", error);
+      console.error("Detailed error saving sale:", error);
       showError(`Gagal menyimpan penjualan: ${error.message}`);
     }
   };
