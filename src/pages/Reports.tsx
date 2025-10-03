@@ -35,7 +35,7 @@ const Reports = () => {
       const { data, error } = await supabase
         .from("sales")
         .select("category, admin_fee")
-        .eq("user_id", session.user.id);
+        .eq("user_id", session?.user?.id);
       if (error) throw error;
       return data;
     },
@@ -119,8 +119,8 @@ const CategoryReportTable = ({ data }: { data: CategoryReport[] }) => (
       <TableHeader>
         <TableRow>
           <TableHead>Kategori Transaksi</TableHead>
-          <TableHead className="text-right">Jumlah Transaksi</TableHead>
-          <TableHead className="text-right">Total Keuntungan Admin (Rp)</TableHead>
+          <TableHead className="text-center">Jumlah Transaksi</TableHead>
+          <TableHead className="text-center">Total Keuntungan Admin (Rp)</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -128,8 +128,8 @@ const CategoryReportTable = ({ data }: { data: CategoryReport[] }) => (
           data.map((item) => (
             <TableRow key={item.category}>
               <TableCell className="font-medium">{item.category}</TableCell>
-              <TableCell className="text-right">{item.transactionCount.toLocaleString("id-ID")}</TableCell>
-              <TableCell className="text-right">{item.totalProfit.toLocaleString("id-ID")}</TableCell>
+              <TableCell className="text-center">{item.transactionCount.toLocaleString("id-ID")}</TableCell>
+              <TableCell className="text-center">{item.totalProfit.toLocaleString("id-ID")}</TableCell>
             </TableRow>
           ))
         ) : (
