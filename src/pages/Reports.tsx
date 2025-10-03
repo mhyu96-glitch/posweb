@@ -8,18 +8,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Sale {
-  product_id: string | null;
-  amount: number;
+// Interface for the data fetched from Supabase
+interface AdminFeeSale {
+  category: string | null;
   admin_fee: number;
-  products: { name: string } | null;
 }
 
-interface ProductReport {
-  productId: string;
-  name: string;
-  quantity: number;
-  revenue: number;
+// Interface for the processed report data
+interface CategoryReport {
+  category: string;
+  transactionCount: number;
+  totalProfit: number;
 }
 
 const Reports = () => {
@@ -28,45 +27,50 @@ const Reports = () => {
     queryFn: async () => (await supabase.auth.getSession()).data.session,
   });
 
-  const { data: sales, isLoading: isLoadingSales } = useQuery<Sale[]>({
-    queryKey: ["allSalesForReports", session?.user?.id],
+  // Fetch all sales, selecting only category and admin_fee
+  const { data: sales, isLoading: isLoadingSales } = useQuery<AdminFeeSale[]>({
+    queryKey: ["allSalesForAdminReport", session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from("sales")
-        .select("product_id, amount, admin_fee, products(name)")
-        .eq("user_id", session.user.id)
-        .not("product_id", "is", null); // Hanya ambil penjualan yang terkait dengan produk
+        .select("category, admin_fee")
+        .eq("user_id", session.user.id);
       if (error) throw error;
       return data;
     },
     enabled: !!session?.user?.id,
   });
 
-  const productReportData = useMemo(() => {
+  // Process the fetched data to create the report
+  const categoryReportData = useMemo(() => {
     if (!sales) return [];
 
     const report = sales.reduce((acc, sale) => {
-      if (!sale.product_id || !sale.products?.name) return acc;
+      const category = sale.category || "Lainnya";
+      const profit = sale.admin_fee || 0;
 
-      if (!acc[sale.product_id]) {
-        acc[sale.product_id] = {
-          productId: sale.product_id,
-          name: sale.products.name,
-          quantity: 0,
-          revenue: 0,
-        };
+      // We only care about transactions that generated a profit
+      if (profit > 0) {
+        if (!acc[category]) {
+          acc[category] = {
+            category: category,
+            transactionCount: 0,
+            totalProfit: 0,
+          };
+        }
+        acc[category].transactionCount += 1;
+        acc[category].totalProfit += profit;
       }
-      acc[sale.product_id].quantity += 1;
-      acc[sale.product_id].revenue += sale.amount + (sale.admin_fee || 0);
       return acc;
-    }, {} as Record<string, ProductReport>);
+    }, {} as Record<string, CategoryReport>);
 
     return Object.values(report);
   }, [sales]);
 
-  const sortedByQuantity = useMemo(() => [...productReportData].sort((a, b) => b.quantity - a.quantity), [productReportData]);
-  const sortedByRevenue = useMemo(() => [...productReportData].sort((a, b) => b.revenue - a.revenue), [productReportData]);
+  // Create sorted lists for the tabs
+  const sortedByTransactions = useMemo(() => [...categoryReportData].sort((a, b) => b.transactionCount - a.transactionCount), [categoryReportData]);
+  const sortedByProfit = useMemo(() => [...categoryReportData].sort((a, b) => b.totalProfit - a.totalProfit), [categoryReportData]);
 
   if (isLoadingSales) {
     return (
@@ -86,20 +90,20 @@ const Reports = () => {
         <h1 className="text-3xl font-bold">Laporan Analitik</h1>
         <Card>
           <CardHeader>
-            <CardTitle>Laporan Produk Terlaris</CardTitle>
-            <CardDescription>Analisis produk berdasarkan jumlah penjualan dan total pendapatan.</CardDescription>
+            <CardTitle>Laporan Keuntungan Admin</CardTitle>
+            <CardDescription>Analisis keuntungan dari biaya admin berdasarkan kategori transaksi.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="quantity">
+            <Tabs defaultValue="profit">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="quantity">Berdasarkan Jumlah Terjual</TabsTrigger>
-                <TabsTrigger value="revenue">Berdasarkan Pendapatan</TabsTrigger>
+                <TabsTrigger value="profit">Berdasarkan Keuntungan</TabsTrigger>
+                <TabsTrigger value="transactions">Berdasarkan Jumlah Transaksi</TabsTrigger>
               </TabsList>
-              <TabsContent value="quantity" className="mt-4">
-                <ProductReportTable data={sortedByQuantity} />
+              <TabsContent value="profit" className="mt-4">
+                <CategoryReportTable data={sortedByProfit} />
               </TabsContent>
-              <TabsContent value="revenue" className="mt-4">
-                <ProductReportTable data={sortedByRevenue} />
+              <TabsContent value="transactions" className="mt-4">
+                <CategoryReportTable data={sortedByTransactions} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -109,29 +113,29 @@ const Reports = () => {
   );
 };
 
-const ProductReportTable = ({ data }: { data: ProductReport[] }) => (
+const CategoryReportTable = ({ data }: { data: CategoryReport[] }) => (
   <div className="border rounded-md">
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Nama Produk</TableHead>
-          <TableHead className="text-right">Jumlah Terjual</TableHead>
-          <TableHead className="text-right">Total Pendapatan (Rp)</TableHead>
+          <TableHead>Kategori Transaksi</TableHead>
+          <TableHead className="text-right">Jumlah Transaksi</TableHead>
+          <TableHead className="text-right">Total Keuntungan Admin (Rp)</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {data.length > 0 ? (
           data.map((item) => (
-            <TableRow key={item.productId}>
-              <TableCell className="font-medium">{item.name}</TableCell>
-              <TableCell className="text-right">{item.quantity}</TableCell>
-              <TableCell className="text-right">{item.revenue.toLocaleString("id-ID")}</TableCell>
+            <TableRow key={item.category}>
+              <TableCell className="font-medium">{item.category}</TableCell>
+              <TableCell className="text-right">{item.transactionCount.toLocaleString("id-ID")}</TableCell>
+              <TableCell className="text-right">{item.totalProfit.toLocaleString("id-ID")}</TableCell>
             </TableRow>
           ))
         ) : (
           <TableRow>
             <TableCell colSpan={3} className="h-24 text-center">
-              Tidak ada data penjualan produk untuk ditampilkan.
+              Tidak ada data transaksi dengan biaya admin untuk ditampilkan.
             </TableCell>
           </TableRow>
         )}
