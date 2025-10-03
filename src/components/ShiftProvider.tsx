@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
+import { useAuth } from "./AuthProvider";
 
 export interface Shift {
   id: string;
@@ -20,25 +20,9 @@ interface ShiftContextType {
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
 export const ShiftProvider = ({ children }: { children: ReactNode }) => {
+  const { session } = useAuth();
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
-    };
-    getSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     const checkForActiveShift = async () => {
@@ -74,15 +58,12 @@ export const ShiftProvider = ({ children }: { children: ReactNode }) => {
 
   const startShift = async (startingBalance: number) => {
     if (activeShift) throw new Error("Shift sudah aktif.");
-
-    // Get the current user directly from Supabase to avoid race conditions
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) throw new Error("Pengguna tidak login atau sesi tidak valid.");
+    if (!session?.user?.id) throw new Error("Pengguna tidak login atau sesi tidak valid.");
 
     const { data, error } = await supabase
       .from("shifts")
       .insert({ 
-        user_id: user.id,
+        user_id: session.user.id,
         starting_balance: startingBalance,
       })
       .select("id, start_time, starting_balance")

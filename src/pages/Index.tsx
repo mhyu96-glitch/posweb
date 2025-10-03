@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SalesEntryForm } from "@/components/SalesEntryForm";
@@ -19,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { DateRange } from "react-day-picker";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
 import { useShift } from "@/components/ShiftProvider";
+import { useAuth } from "@/components/AuthProvider";
 
 interface Customer {
   id: string;
@@ -27,9 +27,9 @@ interface Customer {
 }
 
 const Index = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeShift, isLoading: isShiftLoading } = useShift();
+  const { session, profile, isProfileLoading } = useAuth();
   const [receiptToPrint, setReceiptToPrint] = useState<Sale | null>(null);
   const [filter, setFilter] = useState<{
     mode: "all" | "daily" | "monthly" | "yearly";
@@ -48,29 +48,6 @@ const Index = () => {
       setInitialBalance(activeShift.starting_balance);
     }
   }, [activeShift]);
-
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    },
-  });
-
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ["profile", session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user?.id,
-  });
 
   const { data: settings } = useQuery({
     queryKey: ["settings", session?.user?.id],
@@ -182,7 +159,6 @@ const Index = () => {
     try {
       let customerId = null;
       if (newSale.name) {
-        // Manual upsert logic to fix bug with supabase-js upsert helper
         const { data: existingCustomer, error: selectError } = await supabase
           .from('customers')
           .select('id')
@@ -190,7 +166,7 @@ const Index = () => {
           .eq('name', newSale.name)
           .single();
 
-        if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows found
+        if (selectError && selectError.code !== 'PGRST116') {
           throw selectError;
         }
 
@@ -282,7 +258,7 @@ const Index = () => {
     return filteredSales.reduce((acc, sale) => {
       acc.totalSalesAmount += sale.amount;
       acc.totalAdminFee += sale.admin_fee || 0;
-      acc.totalProfit += sale.admin_fee || 0; // Laba bersih hanya dari biaya admin
+      acc.totalProfit += sale.admin_fee || 0;
       return acc;
     }, { totalSalesAmount: 0, totalAdminFee: 0, totalProfit: 0 });
   }, [filteredSales]);
@@ -290,7 +266,7 @@ const Index = () => {
   if (isSalesLoading || isShiftLoading || isProfileLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6 space-y-4">
-        <Skeleton className="h-8 w-1/ter" />
+        <Skeleton className="h-8 w-1/3" />
         <div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div>
         <Skeleton className="h-96" />
       </div>

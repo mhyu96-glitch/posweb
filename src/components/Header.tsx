@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,34 +13,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Clock, Users as UsersIcon, Settings, UserSquare, BarChart3 } from "lucide-react";
+import { User, LogOut, Clock, Users as UsersIcon, Settings, BarChart3 } from "lucide-react";
 import { useShift } from "./ShiftProvider";
 import { showSuccess, showError } from "@/utils/toast";
+import { useAuth } from "./AuthProvider";
 
 export const Header = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeShift, endShift } = useShift();
-
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => (await supabase.auth.getSession()).data.session,
-  });
-
-  const { data: profile } = useQuery({
-    queryKey: ["profile", session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .limit(1);
-      if (error) throw error;
-      return data?.[0] || null;
-    },
-    enabled: !!session?.user?.id,
-  });
+  const { profile } = useAuth();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -31,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { showError, showSuccess, showLoading, dismissToast } from "@/utils/toast";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/components/AuthProvider";
 
 const userSchema = z.object({
   first_name: z.string().min(1, "Nama depan harus diisi."),
@@ -54,23 +55,7 @@ const Users = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const { data: session } = useQuery({ queryKey: ['session'], queryFn: async () => (await supabase.auth.getSession()).data.session });
-
-  const { data: currentUserProfile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['profile', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .limit(1);
-      if (error) throw error;
-      return data?.[0] || null;
-    },
-    enabled: !!session?.user?.id,
-  });
+  const { session, profile, isProfileLoading } = useAuth();
 
   const { data: users, isLoading: areUsersLoading } = useQuery<UserProfile[]>({
     queryKey: ['users'],
@@ -79,7 +64,7 @@ const Users = () => {
       if (error) throw error;
       return data;
     },
-    enabled: currentUserProfile?.role === 'admin',
+    enabled: profile?.role === 'admin',
   });
 
   const form = useForm<UserFormValues>({
@@ -88,11 +73,11 @@ const Users = () => {
   });
 
   useEffect(() => {
-    if (!isProfileLoading && currentUserProfile?.role !== 'admin') {
+    if (!isProfileLoading && profile?.role !== 'admin') {
       showError("Akses Ditolak: Anda harus menjadi admin untuk melihat halaman ini.");
       navigate("/");
     }
-  }, [currentUserProfile, isProfileLoading, navigate]);
+  }, [profile, isProfileLoading, navigate]);
 
   const onSubmit = async (values: UserFormValues) => {
     const toastId = showLoading("Membuat pengguna baru...");
@@ -126,7 +111,7 @@ const Users = () => {
     }
   };
 
-  if (isProfileLoading || currentUserProfile?.role !== 'admin') {
+  if (isProfileLoading || profile?.role !== 'admin') {
     return <div className="container mx-auto p-4 md:p-6"><Skeleton className="h-96 w-full" /></div>;
   }
 

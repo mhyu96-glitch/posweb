@@ -1,22 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Navigate, Outlet } from "react-router-dom";
 import { Skeleton } from "./ui/skeleton";
+import { useAuth } from "./AuthProvider";
 
 const ProtectedRoute = () => {
-  const { data: session, isLoading } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      return data.session;
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5, // Cache for 5 mins
-  });
+  const { session, isLoading } = useAuth();
 
   if (isLoading) {
     return (
