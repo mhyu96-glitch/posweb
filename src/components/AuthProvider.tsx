@@ -6,9 +6,9 @@ import { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   session: Session | null;
-  isLoading: boolean; // This now ONLY tracks the initial session check
   profile: { role: string } | null;
-  isProfileLoading: boolean; // A separate state for profile fetching
+  isLoading: boolean; // Sinyal loading gabungan untuk sesi DAN profil
+  isProfileLoading: boolean; // Status loading spesifik untuk profil
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,26 +20,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Proactively check for the session ONCE on initial load.
-    // This is the fastest way to determine if the user is logged in.
+    // 1. Cek sesi saat aplikasi pertama kali dimuat.
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsSessionLoading(false);
     });
 
-    // 2. Set up a listener for any FUTURE changes (SIGN_IN, SIGN_OUT).
+    // 2. Dengarkan perubahan status otentikasi di masa mendatang.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      // Jika sesi berubah (misalnya, logout lalu login lagi), kita harus mengambil ulang profil.
+      setIsProfileLoading(true);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    // This effect is solely responsible for fetching the profile whenever the session changes.
-    // It runs independently of the session loading.
+    // Efek ini HANYA bertanggung jawab untuk mengambil data profil.
+    // Ini berjalan setiap kali sesi berubah.
     if (session?.user?.id) {
-      setIsProfileLoading(true);
       supabase
         .from('profiles')
         .select('role')
@@ -52,10 +52,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else {
             setProfile(data);
           }
+          // Selesai mengambil profil.
           setIsProfileLoading(false);
         });
     } else {
-      // No session, so no profile.
+      // Jika tidak ada sesi, tidak ada profil yang perlu diambil.
       setProfile(null);
       setIsProfileLoading(false);
     }
@@ -63,9 +64,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     session,
-    isLoading: isSessionLoading,
     profile,
-    isProfileLoading,
+    // INI ADALAH PERUBAHAN KUNCI:
+    // Aplikasi dianggap sedang loading jika sesi BELUM dicek ATAU profil BELUM diambil.
+    isLoading: isSessionLoading || isProfileLoading,
+    isProfileLoading: isProfileLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
