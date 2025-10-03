@@ -10,10 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useShift } from "@/components/ShiftProvider";
 import { showError } from "@/utils/toast";
+import { useAuth } from "@/components/AuthProvider";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { startShift, activeShift } = useShift();
+  const { startShift } = useShift();
+  const { session, isLoading: isAuthLoading } = useAuth();
   
   // State for Cashier Login
   const [cashierUsername, setCashierUsername] = useState("");
@@ -27,30 +29,11 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        if (activeShift) {
-          navigate("/");
-        } else {
-          const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-          if (profile?.role === 'admin') {
-            navigate("/");
-          }
-        }
-      }
-    };
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        // If user logs out from another tab, ensure they are on the login page
-        navigate("/login");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, activeShift]);
+    // Redirect if user is already logged in
+    if (!isAuthLoading && session) {
+      navigate("/", { replace: true });
+    }
+  }, [session, isAuthLoading, navigate]);
 
   const handleCashierLogin = async (e: React.FormEvent) => {
     e.preventDefault();
