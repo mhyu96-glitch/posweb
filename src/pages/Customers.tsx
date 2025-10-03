@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Link } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -209,7 +210,11 @@ const Customers = () => {
                   ) : customers && customers.length > 0 ? (
                     customers.map((customer) => (
                       <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <Link to={`/customers/${customer.id}`} className="hover:underline">
+                            {customer.name}
+                          </Link>
+                        </TableCell>
                         <TableCell>{customer.phone || "-"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
