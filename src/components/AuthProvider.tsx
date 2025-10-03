@@ -19,8 +19,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Fungsi ini secara proaktif memeriksa sesi saat aplikasi pertama kali dimuat.
-    // Ini adalah langkah paling penting untuk mencegah race condition.
+    // 1. Handle the initial session check on application startup.
+    // This is the most important step to prevent race conditions.
     const initializeSession = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
@@ -42,31 +42,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(null);
         setProfile(null);
       } finally {
-        // Pastikan loading selesai HANYA setelah semua pengecekan awal selesai.
+        // This is the ONLY place where the initial loading state is set to false.
         setIsLoading(false);
       }
     };
 
     initializeSession();
 
-    // Setelah pengecekan awal, kita baru mendengarkan perubahan di masa mendatang.
+    // 2. Set up a listener for future authentication changes (login, logout).
+    // This listener does NOT handle the initial loading state.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
         setSession(newSession);
-        // Saat ada perubahan (login/logout), kita tidak lagi dalam status loading awal.
-        setIsLoading(true);
+        
+        // When the session changes, we need to refetch the profile.
         if (newSession?.user?.id) {
           const { data, error } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', newSession.user.id)
             .single();
-          if (error && error.code !== 'PGRST116') console.error("Error fetching profile on auth change:", error);
-          setProfile(data);
+          if (error && error.code !== 'PGRST116') {
+            console.error("Error fetching profile on auth change:", error);
+            setProfile(null);
+          } else {
+            setProfile(data);
+          }
         } else {
           setProfile(null);
         }
-        setIsLoading(false);
       }
     );
 
@@ -79,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     isLoading,
     profile,
-    isProfileLoading: isLoading,
+    isProfileLoading: isLoading, // The profile is considered loading whenever the main auth state is.
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
