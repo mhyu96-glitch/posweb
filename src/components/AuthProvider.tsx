@@ -19,33 +19,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // onAuthStateChange fires an initial event with the session when the listener is set up.
-    // This handles both initial session restoration and subsequent auth events.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      
-      if (session?.user?.id) {
-        // If there's a session, fetch the user's profile.
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching profile:", error);
-          setProfile(null);
-        } else {
+    // Fungsi ini secara proaktif memeriksa sesi saat aplikasi pertama kali dimuat.
+    // Ini adalah langkah paling penting untuk mencegah race condition.
+    const initializeSession = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        setSession(initialSession);
+
+        if (initialSession?.user?.id) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', initialSession.user.id)
+            .single();
+          if (error && error.code !== 'PGRST116') throw error;
           setProfile(data);
+        } else {
+          setProfile(null);
         }
-      } else {
-        // If there's no session, clear the profile.
+      } catch (error) {
+        console.error("Error during initial session fetch:", error);
+        setSession(null);
         setProfile(null);
+      } finally {
+        // Pastikan loading selesai HANYA setelah semua pengecekan awal selesai.
+        setIsLoading(false);
       }
-      
-      // Set loading to false only after the session and profile are fully resolved.
-      setIsLoading(false);
-    });
+    };
+
+    initializeSession();
+
+    // Setelah pengecekan awal, kita baru mendengarkan perubahan di masa mendatang.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        setSession(newSession);
+        // Saat ada perubahan (login/logout), kita tidak lagi dalam status loading awal.
+        setIsLoading(true);
+        if (newSession?.user?.id) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', newSession.user.id)
+            .single();
+          if (error && error.code !== 'PGRST116') console.error("Error fetching profile on auth change:", error);
+          setProfile(data);
+        } else {
+          setProfile(null);
+        }
+        setIsLoading(false);
+      }
+    );
 
     return () => {
       subscription.unsubscribe();
@@ -56,7 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     isLoading,
     profile,
-    // Tie profile loading directly to the main loading state for simplicity and robustness.
     isProfileLoading: isLoading,
   };
 
