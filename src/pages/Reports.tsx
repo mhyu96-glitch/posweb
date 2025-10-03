@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -113,35 +113,49 @@ const Reports = () => {
   );
 };
 
-const CategoryReportTable = ({ data }: { data: CategoryReport[] }) => (
-  <div className="border rounded-md">
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Kategori Transaksi</TableHead>
-          <TableHead className="text-center">Jumlah Transaksi</TableHead>
-          <TableHead className="text-center">Total Keuntungan Admin (Rp)</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {data.length > 0 ? (
-          data.map((item) => (
-            <TableRow key={item.category}>
-              <TableCell className="font-medium">{item.category}</TableCell>
-              <TableCell className="text-center">{item.transactionCount.toLocaleString("id-ID")}</TableCell>
-              <TableCell className="text-center">{item.totalProfit.toLocaleString("id-ID")}</TableCell>
-            </TableRow>
-          ))
-        ) : (
+const CategoryReportTable = ({ data }: { data: CategoryReport[] }) => {
+  const totalTransactions = useMemo(() => data.reduce((sum, item) => sum + item.transactionCount, 0), [data]);
+  const totalProfit = useMemo(() => data.reduce((sum, item) => sum + item.totalProfit, 0), [data]);
+
+  return (
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
           <TableRow>
-            <TableCell colSpan={3} className="h-24 text-center">
-              Tidak ada data transaksi dengan biaya admin untuk ditampilkan.
-            </TableCell>
+            <TableHead>Kategori Transaksi</TableHead>
+            <TableHead className="text-center">Jumlah Transaksi</TableHead>
+            <TableHead className="text-center">Total Keuntungan Admin (Rp)</TableHead>
           </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.length > 0 ? (
+            data.map((item) => (
+              <TableRow key={item.category}>
+                <TableCell className="font-medium">{item.category}</TableCell>
+                <TableCell className="text-center">{item.transactionCount.toLocaleString("id-ID")}</TableCell>
+                <TableCell className="text-center">{item.totalProfit.toLocaleString("id-ID")}</TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={3} className="h-24 text-center">
+                Tidak ada data transaksi dengan biaya admin untuk ditampilkan.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+        {data.length > 0 && (
+          <TableFooter>
+            <TableRow>
+              <TableCell className="font-bold">Total</TableCell>
+              <TableCell className="text-center font-bold">{totalTransactions.toLocaleString("id-ID")}</TableCell>
+              <TableCell className="text-center font-bold">{totalProfit.toLocaleString("id-ID")}</TableCell>
+            </TableRow>
+          </TableFooter>
         )}
-      </TableBody>
-    </Table>
-  </div>
-);
+      </Table>
+    </div>
+  );
+};
 
 export default Reports;
