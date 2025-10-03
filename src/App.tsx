@@ -12,6 +12,7 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import Customers from "./pages/Customers";
 import CustomerDetail from "./pages/CustomerDetail";
+import Reports from "./pages/Reports";
 import MainLayout from "./components/MainLayout";
 import { ShiftProvider } from "./components/ShiftProvider";
 import ShiftReport from "./pages/ShiftReport";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/customers/:customerId" element={<CustomerDetail />} />
+              <Route path="/reports" element={<Reports />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/shift-report/:shiftId" element={<ShiftReport />} />
