@@ -63,6 +63,21 @@ const Index = () => {
     staleTime: Infinity,
   });
 
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ["profile", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
+
   const { data: settings } = useQuery({
     queryKey: ["settings", session?.user?.id],
     queryFn: async () => {
@@ -79,20 +94,25 @@ const Index = () => {
   });
 
   const { data: sales, isLoading: isSalesLoading } = useQuery<Sale[]>({
-    queryKey: ["sales", session?.user?.id, activeShift?.id],
+    queryKey: ["sales", session?.user?.id, activeShift?.id, profile?.role],
     queryFn: async () => {
-      if (!session?.user?.id) return [];
+      if (!session?.user?.id || !profile) return [];
       let query = supabase.from("sales").select("*, products(name), customers(name)");
       
-      if (activeShift) {
-        query = query.eq("shift_id", activeShift.id);
+      if (profile.role === 'kasir') {
+        if (activeShift) {
+          query = query.eq("shift_id", activeShift.id);
+        } else {
+          return []; // Cashier with no active shift sees no sales
+        }
       }
+      // Admin sees all sales, filtering is handled by ReportFilters
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return data.map(sale => ({ ...sale, createdAt: new Date(sale.created_at) }));
     },
-    enabled: !!session?.user?.id && !isShiftLoading,
+    enabled: !!session?.user?.id && !isShiftLoading && !isProfileLoading,
   });
 
   const { data: customers } = useQuery<Customer[]>({
@@ -127,7 +147,7 @@ const Index = () => {
         const to = value.dateRange.to ? endOfDay(value.dateRange.to) : endOfDay(value.dateRange.from);
         dateFilteredSales = sales.filter(sale => sale.createdAt >= from && sale.createdAt <= to);
       } else {
-        return [];
+        return []; // Show nothing if no date is selected in daily mode
       }
     } else if (mode === "monthly" && value?.month && value?.year) {
       dateFilteredSales = sales.filter(sale => 
@@ -156,10 +176,15 @@ const Index = () => {
   }, [sales, filter, searchTerm, categoryFilter]);
 
   const handleAddSale = async (newSale: { name: string; destination: string; bankName?: string; amount: number; adminFee: number; category: string; productId?: string; costPrice?: number; }) => {
-    if (!session?.user?.id || !activeShift?.id) {
+    if (!session?.user?.id) {
+      showError("Sesi tidak valid. Silakan login kembali.");
+      return;
+    }
+    if (profile?.role === 'kasir' && !activeShift?.id) {
       showError("Tidak ada shift aktif. Tidak dapat mencatat penjualan.");
       return;
     }
+
     try {
       let customerId = null;
       if (newSale.name) {
@@ -181,13 +206,13 @@ const Index = () => {
         amount: newSale.amount, 
         admin_fee: newSale.adminFee,
         category: newSale.category, 
-        shift_id: activeShift.id, 
+        shift_id: activeShift?.id || null, 
         product_id: newSale.productId,
         customer_id: customerId,
         cost_price: newSale.costPrice,
       }]);
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
+      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id, profile?.role] });
       queryClient.invalidateQueries({ queryKey: ["customers", session.user.id] });
     } catch (error) {
       showError("Gagal menyimpan penjualan.");
@@ -199,7 +224,7 @@ const Index = () => {
       const { error } = await supabase.from("sales").delete().match({ id: saleId });
       if (error) throw error;
       showSuccess("Transaksi berhasil dihapus!");
-      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id] });
+      queryClient.invalidateQueries({ queryKey: ["sales", session.user.id, activeShift?.id, profile?.role] });
     } catch (error) {
       showError("Gagal menghapus transaksi.");
     }
@@ -252,7 +277,7 @@ const Index = () => {
     }, { totalSalesAmount: 0, totalAdminFee: 0, totalProfit: 0 });
   }, [filteredSales]);
 
-  if (isSessionLoading || isSalesLoading || isShiftLoading) {
+  if (isSessionLoading || isSalesLoading || isShiftLoading || isProfileLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6 space-y-4">
         <Skeleton className="h-8 w-1/ter" />
