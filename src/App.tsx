@@ -16,6 +16,7 @@ import Reports from "./pages/Reports";
 import MainLayout from "./components/MainLayout";
 import { ShiftProvider } from "./components/ShiftProvider";
 import ShiftReport from "./pages/ShiftReport";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -27,19 +28,24 @@ const App = () => (
       <ShiftProvider>
         <BrowserRouter>
           <Routes>
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/customers" element={<Customers />} />
-              <Route path="/customers/:customerId" element={<CustomerDetail />} />
-              <Route path="/reports" element={<Reports />} />
-            </Route>
+            {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/shift-report/:shiftId" element={<ShiftReport />} />
             <Route path="*" element={<NotFound />} />
+
+            {/* Protected routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/customers/:customerId" element={<CustomerDetail />} />
+                <Route path="/reports" element={<Reports />} />
+              </Route>
+            </Route>
           </Routes>
         </BrowserRouter>
       </ShiftProvider>
