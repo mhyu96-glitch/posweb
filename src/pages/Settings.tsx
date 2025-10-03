@@ -38,7 +38,7 @@ type SettingsFormValues = z.infer<typeof settingsFormSchema>;
 const Settings = () => {
   const queryClient = useQueryClient();
 
-  const { data: session, isLoading: isSessionLoading } = useQuery({
+  const { data: session } = useQuery({
     queryKey: ["session"],
     queryFn: async () => (await supabase.auth.getSession()).data.session,
   });
@@ -100,7 +100,7 @@ const Settings = () => {
     }
   };
 
-  if (isSessionLoading || isSettingsLoading) {
+  if (isSettingsLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6">
         <Card className="max-w-2xl mx-auto">

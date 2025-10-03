@@ -49,18 +49,12 @@ const Index = () => {
     }
   }, [activeShift]);
 
-  const { data: session, isLoading: isSessionLoading } = useQuery({
+  const { data: session } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      if (!data.session) {
-        navigate("/login");
-        return null;
-      }
+      const { data } = await supabase.auth.getSession();
       return data.session;
     },
-    staleTime: Infinity,
   });
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
@@ -293,7 +287,7 @@ const Index = () => {
     }, { totalSalesAmount: 0, totalAdminFee: 0, totalProfit: 0 });
   }, [filteredSales]);
 
-  if (isSessionLoading || isSalesLoading || isShiftLoading || isProfileLoading) {
+  if (isSalesLoading || isShiftLoading || isProfileLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6 space-y-4">
         <Skeleton className="h-8 w-1/ter" />

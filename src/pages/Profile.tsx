@@ -36,7 +36,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 const Profile = () => {
   const queryClient = useQueryClient();
 
-  const { data: session, isLoading: isSessionLoading } = useQuery({
+  const { data: session } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
       const { data } = await supabase.auth.getSession();
@@ -101,7 +101,7 @@ const Profile = () => {
     }
   };
 
-  if (isSessionLoading || isProfileLoading) {
+  if (isProfileLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6">
         <Card className="max-w-2xl mx-auto">
