@@ -188,14 +188,30 @@ const Index = () => {
     try {
       let customerId = null;
       if (newSale.name) {
-        const { data: customer, error: upsertError } = await supabase
+        // Manual upsert logic to fix bug with supabase-js upsert helper
+        const { data: existingCustomer, error: selectError } = await supabase
           .from('customers')
-          .upsert({ user_id: session.user.id, name: newSale.name, phone: newSale.destination }, { onConflict: 'user_id,name' })
           .select('id')
+          .eq('user_id', session.user.id)
+          .eq('name', newSale.name)
           .single();
-        
-        if (upsertError) throw upsertError;
-        customerId = customer.id;
+
+        if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows found
+          throw selectError;
+        }
+
+        if (existingCustomer) {
+          customerId = existingCustomer.id;
+        } else {
+          const { data: newCustomer, error: insertError } = await supabase
+            .from('customers')
+            .insert({ user_id: session.user.id, name: newSale.name, phone: newSale.destination })
+            .select('id')
+            .single();
+
+          if (insertError) throw insertError;
+          if (newCustomer) customerId = newCustomer.id;
+        }
       }
 
       const { error } = await supabase.from("sales").insert([{ 
