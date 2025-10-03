@@ -6,9 +6,9 @@ import { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   session: Session | null;
-  isLoading: boolean;
+  isLoading: boolean; // This now ONLY tracks the initial session check
   profile: { role: string } | null;
-  isProfileLoading: boolean;
+  isProfileLoading: boolean; // A separate state for profile fetching
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,74 +16,56 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<{ role: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Handle the initial session check on application startup.
-    // This is the most important step to prevent race conditions.
-    const initializeSession = async () => {
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
+    // 1. Proactively check for the session ONCE on initial load.
+    // This is the fastest way to determine if the user is logged in.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsSessionLoading(false);
+    });
 
-        if (initialSession?.user?.id) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', initialSession.user.id)
-            .single();
-          if (error && error.code !== 'PGRST116') throw error;
-          setProfile(data);
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error("Error during initial session fetch:", error);
-        setSession(null);
-        setProfile(null);
-      } finally {
-        // This is the ONLY place where the initial loading state is set to false.
-        setIsLoading(false);
-      }
-    };
+    // 2. Set up a listener for any FUTURE changes (SIGN_IN, SIGN_OUT).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-    initializeSession();
+    return () => subscription.unsubscribe();
+  }, []);
 
-    // 2. Set up a listener for future authentication changes (login, logout).
-    // This listener does NOT handle the initial loading state.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        setSession(newSession);
-        
-        // When the session changes, we need to refetch the profile.
-        if (newSession?.user?.id) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', newSession.user.id)
-            .single();
+  useEffect(() => {
+    // This effect is solely responsible for fetching the profile whenever the session changes.
+    // It runs independently of the session loading.
+    if (session?.user?.id) {
+      setIsProfileLoading(true);
+      supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+        .then(({ data, error }) => {
           if (error && error.code !== 'PGRST116') {
-            console.error("Error fetching profile on auth change:", error);
+            console.error("Error fetching profile:", error);
             setProfile(null);
           } else {
             setProfile(data);
           }
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+          setIsProfileLoading(false);
+        });
+    } else {
+      // No session, so no profile.
+      setProfile(null);
+      setIsProfileLoading(false);
+    }
+  }, [session]);
 
   const value = {
     session,
-    isLoading,
+    isLoading: isSessionLoading,
     profile,
-    isProfileLoading: isLoading, // The profile is considered loading whenever the main auth state is.
+    isProfileLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
