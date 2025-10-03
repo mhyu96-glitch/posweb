@@ -17,8 +17,7 @@ export const DashboardMetrics = ({ sales }: DashboardMetricsProps) => {
     const totalTodayRevenue = todaySales.reduce((sum, sale) => sum + sale.amount + (sale.admin_fee || 0), 0);
     const totalTodayTransactions = todaySales.length;
     const totalTodayProfit = todaySales.reduce((sum, sale) => {
-      const profitFromProduct = sale.amount - (sale.cost_price || 0);
-      return sum + profitFromProduct + (sale.admin_fee || 0);
+      return sum + (sale.admin_fee || 0); // Laba bersih hanya dari biaya admin
     }, 0);
 
     return {
@@ -54,7 +53,7 @@ export const DashboardMetrics = ({ sales }: DashboardMetricsProps) => {
             Rp {metrics.totalTodayProfit.toLocaleString("id-ID")}
           </div>
           <p className="text-xs text-muted-foreground">
-            Laba bersih setelah dikurangi modal
+            Total keuntungan dari biaya admin
           </p>
         </CardContent>
       </Card>

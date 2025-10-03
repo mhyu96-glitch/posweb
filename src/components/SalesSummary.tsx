@@ -84,20 +84,14 @@ export const SalesSummary = ({
               Rp {initialBalance.toLocaleString("id-ID")}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span>Total Penjualan:</span>
-            <span className="font-medium">
-              Rp {totalSalesAmount.toLocaleString("id-ID")}
-            </span>
-          </div>
           <div className="flex justify-between font-bold text-green-600">
-            <span>Total Laba Bersih:</span>
+            <span>Total Laba Bersih (dari Biaya Admin):</span>
             <span>
               + Rp {totalProfit.toLocaleString("id-ID")}
             </span>
           </div>
           <div className="flex justify-between pt-2 border-t">
-            <span>Total Pemasukan Periode Ini:</span>
+            <span>Total Pengeluaran (Transaksi):</span>
             <span className="font-medium text-red-600">
               - Rp {totalRevenue.toLocaleString("id-ID")}
             </span>

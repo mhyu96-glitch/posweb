@@ -288,8 +288,7 @@ const Index = () => {
     return filteredSales.reduce((acc, sale) => {
       acc.totalSalesAmount += sale.amount;
       acc.totalAdminFee += sale.admin_fee || 0;
-      const profitFromProduct = sale.amount - (sale.cost_price || 0);
-      acc.totalProfit += profitFromProduct + (sale.admin_fee || 0);
+      acc.totalProfit += sale.admin_fee || 0; // Laba bersih hanya dari biaya admin
       return acc;
     }, { totalSalesAmount: 0, totalAdminFee: 0, totalProfit: 0 });
   }, [filteredSales]);
